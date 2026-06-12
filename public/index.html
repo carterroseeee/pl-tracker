@@ -1,0 +1,2800 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>P&L Tracker — Rose Power Washing</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #f8fafc; --surface: #fff; --border: #e2e8f0; --text: #0f172a;
+  --muted: #64748b; --primary: #1e3a5f; --primary-fg: #fff;
+  --green: #15803d; --red: #b91c1c; --blue-row: #eff6ff;
+  --radius: 10px; --shadow: 0 1px 4px rgba(0,0,0,.08);
+}
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); font-size: 14px; min-height: 100vh; }
+
+/* ── Header ── */
+.app-header { background: var(--primary); color: #fff; padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 20; }
+.app-header .biz { font-size: 11px; opacity: .65; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 2px; }
+.app-header h1 { font-size: 18px; font-weight: 700; }
+.btn-export { background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.3); color: #fff; padding: 7px 14px; border-radius: 7px; cursor: pointer; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+.btn-export:hover { background: rgba(255,255,255,.25); }
+
+/* ── Month nav ── */
+.month-nav { background: var(--surface); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: center; gap: 14px; padding: 10px 20px; position: sticky; top: 57px; z-index: 9; }
+.month-nav h2 { font-size: 16px; font-weight: 700; min-width: 160px; text-align: center; }
+.btn-nav { background: none; border: 1px solid var(--border); border-radius: 7px; width: 34px; height: 34px; cursor: pointer; font-size: 18px; color: var(--text); display: flex; align-items: center; justify-content: center; }
+.btn-nav:hover { background: var(--bg); }
+.btn-today { background: none; border: 1px solid var(--border); border-radius: 7px; padding: 6px 12px; cursor: pointer; font-size: 12px; font-weight: 600; color: var(--muted); }
+.btn-today:hover { background: var(--bg); }
+
+/* ── Tab bar ── */
+.tab-bar { display: flex; padding: 16px 20px 0; max-width: 1200px; margin: 0 auto; border-bottom: 1px solid var(--border); background: var(--surface); }
+.tab-btn { background: none; border: none; border-bottom: 3px solid transparent; padding: 8px 18px 10px; cursor: pointer; font-size: 14px; font-weight: 600; color: var(--muted); display: flex; align-items: center; gap: 7px; margin-bottom: -1px; }
+.tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
+.tab-badge { border-radius: 10px; padding: 1px 7px; font-size: 11px; font-weight: 700; }
+.tab-badge.green { background: #dcfce7; color: var(--green); }
+.tab-badge.red   { background: #fee2e2; color: var(--red); }
+.tab-badge.purple { background: #ede9fe; color: #7c3aed; }
+
+/* ── Content ── */
+.content { max-width: 1200px; margin: 0 auto; padding: 20px; }
+.panel { display: none; }
+.panel.active { display: block; }
+
+/* ── Cards ── */
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; margin-bottom: 16px; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 18px; box-shadow: var(--shadow); }
+.card-label { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 6px; }
+.card-amount { font-size: 24px; font-weight: 800; }
+.card-amount.green { color: var(--green); }
+.card-amount.red   { color: var(--red); }
+.card-amount.pos   { color: var(--green); }
+.card-amount.neg   { color: var(--red); }
+
+/* ── Dashboard source table ── */
+.dash-table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; margin-bottom: 24px; }
+.dash-tbl { width: 100%; border-collapse: collapse; }
+.dash-tbl th { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; background: var(--bg); padding: 9px 16px; text-align: right; border-bottom: 1px solid var(--border); white-space: nowrap; }
+.dash-tbl th:first-child { text-align: left; }
+.dash-tbl td { padding: 12px 16px; border-bottom: 1px solid var(--border); text-align: right; }
+.dash-tbl td:first-child { text-align: left; font-weight: 600; }
+.dash-tbl tr:last-child td { border-bottom: none; }
+.dash-combined td { background: #f1f5f9; font-weight: 800; font-size: 15px; border-top: 2px solid var(--border); }
+
+/* ── Section label ── */
+.section-label { font-size: 11px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; margin-top: 4px; }
+
+/* ── Table ── */
+.table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; overflow-x: auto; margin-bottom: 24px; }
+table { width: 100%; border-collapse: collapse; }
+th { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; background: var(--bg); padding: 9px 14px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+th.r, td.r { text-align: right; }
+td { padding: 9px 14px; border-bottom: 1px solid var(--border); vertical-align: middle; white-space: nowrap; }
+tr:last-child td { border-bottom: none; }
+tr.clickable { cursor: pointer; }
+tr.clickable:hover td { background: var(--bg); }
+tr.selected td { background: var(--blue-row); }
+tr.total-row td { background: #f1f5f9; font-weight: 700; border-top: 2px solid var(--border); }
+.td-green { color: var(--green); font-weight: 600; }
+.td-red   { color: var(--red);   font-weight: 600; }
+.td-muted { color: var(--muted); font-size: 13px; }
+.td-wrap  { white-space: normal; min-width: 140px; max-width: 200px; }
+.td-nowrap { white-space: nowrap; }
+
+/* ── Badges ── */
+.badge { display: inline-block; border-radius: 5px; padding: 2px 8px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+.badge-secondary { background: #f1f5f9; color: #475569; }
+.badge-outline   { background: transparent; border: 1px solid var(--border); color: var(--muted); }
+.badge-lead      { background: #f1f5f9; color: #475569; }
+.badge-quoted    { background: #dbeafe; color: #1d4ed8; }
+.badge-scheduled { background: #fef3c7; color: #b45309; }
+.badge-completed { background: #dcfce7; color: #15803d; }
+.badge-cancelled { background: #fee2e2; color: #b91c1c; }
+.badge-list { display: flex; flex-wrap: wrap; gap: 4px; }
+
+/* ── Tab header ── */
+.tab-header { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 16px; gap: 12px; flex-wrap: wrap; }
+.tab-header-total { font-size: 28px; font-weight: 800; }
+.tab-header-sub { font-size: 13px; color: var(--muted); margin-bottom: 4px; }
+.tab-header-right { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+
+/* ── Search ── */
+.search-wrap { position: relative; }
+.search-wrap input { padding-left: 30px; min-width: 220px; }
+.search-icon { position: absolute; left: 9px; top: 50%; transform: translateY(-50%); color: var(--muted); pointer-events: none; font-size: 13px; }
+
+/* ── Buttons ── */
+.btn { border: none; border-radius: 7px; padding: 8px 16px; cursor: pointer; font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.btn-primary     { background: var(--primary); color: #fff; }
+.btn-primary:hover { background: #162e4d; }
+.btn-outline     { background: #fff; color: var(--text); border: 1px solid var(--border); }
+.btn-outline:hover { background: var(--bg); }
+.btn-ghost       { background: none; color: var(--muted); border: none; padding: 5px 8px; border-radius: 6px; cursor: pointer; }
+.btn-ghost:hover { background: var(--bg); color: var(--text); }
+.btn-ghost.danger:hover { background: #fee2e2; color: var(--red); }
+.btn-destructive { background: var(--red); color: #fff; }
+.btn-destructive:hover { background: #991b1b; }
+.btn-xs  { padding: 4px 9px; font-size: 12px; }
+.icon-btn { width: 30px; height: 30px; padding: 0; justify-content: center; font-size: 13px; }
+.btn-call { background: #dcfce7; color: #15803d; border-radius: 5px; padding: 3px 7px; font-size: 11px; font-weight: 700; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 3px; border: none; }
+.btn-call:hover { background: #bbf7d0; }
+.btn-sms  { background: #dbeafe; color: #1d4ed8; border-radius: 5px; padding: 3px 7px; font-size: 11px; font-weight: 700; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 3px; border: none; }
+.btn-sms:hover  { background: #bfdbfe; }
+
+/* ── Delete confirm ── */
+.del-confirm { display: inline-flex; align-items: center; gap: 4px; }
+.del-label { font-size: 11px; color: var(--red); font-weight: 600; }
+
+/* ── Empty state ── */
+.empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 20px; border: 2px dashed var(--border); border-radius: var(--radius); background: var(--surface); text-align: center; gap: 12px; }
+.empty-state p { color: var(--muted); }
+
+/* ── Drop zone ── */
+.drop-zone { border: 2px dashed var(--border); border-radius: var(--radius); padding: 24px 20px; text-align: center; cursor: pointer; color: var(--muted); font-size: 13px; transition: border-color .15s, background .15s; }
+.drop-zone:hover, .drop-zone.dragover { border-color: var(--primary); background: #f0f4f8; color: var(--primary); }
+.drop-zone strong { display: block; margin-bottom: 4px; font-size: 14px; }
+
+/* ── Modal ── */
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 100; align-items: flex-start; justify-content: center; padding: 24px 16px; overflow-y: auto; }
+.modal-overlay.open { display: flex; }
+.modal { background: var(--surface); border-radius: 12px; width: 100%; max-width: 460px; box-shadow: 0 20px 60px rgba(0,0,0,.2); margin: auto; }
+.modal-wide { max-width: 580px; }
+.modal-xl   { max-width: 700px; }
+.modal-header { padding: 18px 20px 14px; border-bottom: 1px solid var(--border); font-size: 16px; font-weight: 700; display: flex; align-items: center; justify-content: space-between; }
+.modal-close { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--muted); line-height: 1; padding: 0 4px; }
+.modal-body { padding: 18px 20px; display: flex; flex-direction: column; gap: 14px; max-height: 65vh; overflow-y: auto; }
+.modal-footer { padding: 14px 20px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 8px; }
+.form-row  { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.form-row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+.form-group { display: flex; flex-direction: column; gap: 5px; }
+.form-group label { font-size: 13px; font-weight: 600; }
+input:not([type="checkbox"]), select, textarea { border: 1px solid var(--border); border-radius: 7px; padding: 8px 10px; font-size: 14px; font-family: inherit; background: var(--surface); color: var(--text); width: 100%; }
+input:not([type="checkbox"]):focus, select:focus, textarea:focus { outline: 2px solid var(--primary); outline-offset: -1px; border-color: var(--primary); }
+textarea { resize: none; }
+.error-msg { color: var(--red); font-size: 12px; font-weight: 600; }
+.toggle-row { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+.toggle-row input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--green); cursor: pointer; }
+.toggle-label { font-size: 13px; font-weight: 600; }
+
+/* ── Multi-select checkboxes ── */
+.label-hint { font-size: 11px; font-weight: 400; color: var(--muted); margin-left: 4px; }
+.checkbox-list { border: 1px solid var(--border); border-radius: 7px; padding: 4px 2px; max-height: 150px; overflow-y: auto; background: var(--surface); }
+.checkbox-list:focus-within { outline: 2px solid var(--primary); outline-offset: -1px; }
+.checkbox-item { display: flex; align-items: center; gap: 9px; padding: 6px 10px; border-radius: 5px; cursor: pointer; font-size: 13px; font-weight: 400; color: var(--text); user-select: none; }
+.checkbox-item:hover { background: var(--bg); }
+.checkbox-item input[type="checkbox"] { width: 15px; height: 15px; accent-color: var(--primary); cursor: pointer; flex-shrink: 0; }
+
+/* ── CSV mapper ── */
+.mapper-grid { display: grid; grid-template-columns: 150px 1fr; gap: 6px 12px; align-items: center; }
+.mapper-grid .field-label { font-size: 13px; font-weight: 600; }
+.mapper-grid select { padding: 5px 8px; font-size: 12px; }
+.import-preview { background: var(--bg); border: 1px solid var(--border); border-radius: 7px; padding: 10px; font-size: 11px; font-family: monospace; color: var(--muted); max-height: 90px; overflow-y: auto; white-space: pre; }
+
+/* ── Inline editing ── */
+.editable-cell { cursor: pointer; }
+.editable-cell:hover { background: rgba(30,58,95,.05) !important; }
+.editable-cell.editing { background: rgba(30,58,95,.04) !important; }
+.inline-input { border: 1.5px solid var(--primary) !important; border-radius: 5px; padding: 4px 7px; font-size: 13px; font-family: inherit; background: #fff; color: var(--text); width: 100%; outline: none; box-shadow: 0 0 0 3px rgba(30,58,95,.12); }
+textarea.inline-input { resize: vertical; min-height: 48px; }
+.svc-picker { position: fixed; background: var(--surface); border: 1px solid var(--border); border-radius: 9px; box-shadow: 0 8px 28px rgba(0,0,0,.16); padding: 6px 2px 8px; z-index: 300; min-width: 210px; max-height: 290px; overflow-y: auto; }
+
+/* ── SEO & Lead badges ── */
+.rank-top    { background: #dcfce7; color: #15803d; }
+.rank-page1  { background: #dbeafe; color: #1d4ed8; }
+.rank-page2  { background: #fef3c7; color: #b45309; }
+.rank-beyond { background: #fee2e2; color: #b91c1c; }
+.trend-up   { color: var(--green); font-size: 11px; font-weight: 700; margin-left: 3px; }
+.trend-down { color: var(--red);   font-size: 11px; font-weight: 700; margin-left: 3px; }
+.trend-flat { color: var(--muted); font-size: 11px; margin-left: 3px; }
+.convert-btn { background: #dcfce7; color: #15803d; border: 1px solid #86efac; border-radius: 5px; padding: 3px 8px; font-size: 11px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+.convert-btn:hover { background: #bbf7d0; }
+.converted-badge { background: #dcfce7; color: #15803d; border-radius: 5px; padding: 2px 7px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+.seo-url-link { color: var(--primary); font-size: 12px; font-weight: 500; text-decoration: none; }
+.seo-url-link:hover { text-decoration: underline; }
+
+/* ── SEO Command Center layout ── */
+.seo-section { margin-bottom: 28px; }
+.seo-section-header { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 10px; border-bottom: 2px solid var(--border); padding-bottom: 8px; gap: 10px; }
+.seo-section-title { font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--primary); }
+.seo-section-meta  { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+/* ── Wins timeline ── */
+.timeline { position: relative; padding-left: 30px; }
+.timeline::before { content:''; position:absolute; left:10px; top:6px; bottom:6px; width:2px; background:var(--border); border-radius:2px; }
+.tl-item { position: relative; margin-bottom: 16px; }
+.tl-dot { position:absolute; left:-24px; top:5px; width:12px; height:12px; border-radius:50%; background:var(--green); border:2px solid #fff; box-shadow:0 0 0 2px var(--green); }
+.tl-card { background:var(--surface); border:1px solid var(--border); border-radius:9px; padding:11px 14px; box-shadow:var(--shadow); }
+.tl-meta { display:flex; align-items:center; justify-content:space-between; margin-bottom:5px; gap:8px; }
+.tl-date { font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; }
+.tl-actions { display:flex; gap:2px; flex-shrink:0; }
+.tl-title { font-size:14px; font-weight:700; color:var(--text); margin-bottom:4px; }
+.tl-notes { font-size:13px; color:var(--muted); line-height:1.5; }
+
+/* ── Goal cards ── */
+.goals-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(270px,1fr)); gap:14px; }
+.goal-card { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:14px 16px; box-shadow:var(--shadow); display:flex; flex-direction:column; gap:9px; }
+.goal-card.g-done { border-color:#86efac; background:#f0fdf4; }
+.goal-month { font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; }
+.goal-text { font-size:14px; font-weight:600; line-height:1.4; flex:1; }
+.goal-text.done { text-decoration:line-through; color:var(--muted); }
+.prog-wrap { display:flex; align-items:center; gap:8px; }
+.prog-bar { flex:1; height:7px; background:var(--border); border-radius:4px; overflow:hidden; }
+.prog-fill { height:100%; border-radius:4px; background:var(--primary); transition:width .3s; }
+.prog-fill.done { background:var(--green); }
+.prog-pct { font-size:12px; font-weight:700; color:var(--muted); min-width:34px; text-align:right; }
+.goal-footer { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+
+/* ── Keyword / Competitor status badges ── */
+.badge-beating     { background:#dcfce7; color:#15803d; }
+.badge-not-yet     { background:#f1f5f9; color:#475569; }
+.badge-not-ranking { background:#fee2e2; color:#b91c1c; }
+.badge-improving   { background:#fef3c7; color:#b45309; }
+.badge-page1-kw    { background:#dcfce7; color:#15803d; }
+/* Sheet sync strip */
+.sync-strip { display:flex; align-items:center; gap:8px; padding:8px 0 4px; border-top:1px solid var(--border); margin-top:8px; flex-wrap:wrap; }
+.sync-strip .sync-label { font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; white-space:nowrap; }
+.sync-url-inp { flex:1; min-width:220px; font-size:12px; padding:5px 9px; border:1px solid var(--border); border-radius:6px; font-family:inherit; color:var(--text); background:var(--surface); }
+.sync-url-inp:focus { outline:2px solid var(--primary); outline-offset:-1px; }
+#sync-status { font-size:12px; color:var(--muted); }
+/* Invoice line items */
+.li-row { display:grid; grid-template-columns:1fr 110px 30px; gap:6px; margin-bottom:5px; align-items:center; }
+.li-row input { margin:0; }
+.inv-totals { margin-top:10px; border-top:1px solid var(--border); padding-top:8px; }
+.inv-totals-row { display:flex; justify-content:space-between; padding:3px 6px; font-size:13px; color:var(--muted); }
+.inv-total-big { display:flex; justify-content:space-between; padding:9px 12px; background:var(--primary); color:#fff; border-radius:7px; font-size:16px; font-weight:800; margin-top:6px; }
+/* Login screen */
+#login-screen { position:fixed; inset:0; background:linear-gradient(135deg,#1e3a5f 0%,#2d5986 100%); display:flex; align-items:center; justify-content:center; z-index:9999; }
+.login-card { background:#fff; border-radius:16px; padding:40px 36px; width:360px; max-width:calc(100vw - 40px); box-shadow:0 24px 64px rgba(0,0,0,.35); text-align:center; }
+.login-logo { font-size:22px; font-weight:800; color:var(--primary); margin-bottom:3px; }
+.login-tagline { font-size:13px; color:var(--muted); margin-bottom:28px; }
+.login-pw { width:100%; padding:12px 14px; border:2px solid var(--border); border-radius:8px; font-size:15px; font-family:inherit; outline:none; box-sizing:border-box; transition:border-color .15s; }
+.login-pw:focus { border-color:var(--primary); }
+.login-btn { width:100%; padding:12px; background:var(--primary); color:#fff; border:none; border-radius:8px; font-size:15px; font-weight:700; cursor:pointer; margin-top:10px; font-family:inherit; transition:background .15s; }
+.login-btn:hover { background:#2d5986; }
+.login-btn:disabled { opacity:.6; cursor:default; }
+.login-err { color:var(--red); font-size:13px; margin-top:10px; min-height:18px; }
+#save-status { font-size:12px; color:rgba(255,255,255,.7); }
+.btn-signout { background:none; border:1px solid rgba(255,255,255,.35); color:rgba(255,255,255,.8); padding:5px 12px; border-radius:6px; font-size:12px; cursor:pointer; font-family:inherit; }
+.btn-signout:hover { background:rgba(255,255,255,.15); color:#fff; }
+</style>
+</head>
+<body>
+
+<!-- Login screen -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">Rose Power Washing</div>
+    <div class="login-tagline">Business Tracker — sign in to continue</div>
+    <input class="login-pw" type="password" id="login-pw" placeholder="Password"
+           onkeydown="if(event.key==='Enter')login()">
+    <button class="login-btn" id="login-btn" onclick="login()">Sign In</button>
+    <div class="login-err" id="login-err"></div>
+  </div>
+</div>
+
+<div class="app-header">
+  <div>
+    <div class="biz">Rose Power Washing</div>
+    <h1>Profit &amp; Loss Tracker</h1>
+  </div>
+  <div style="display:flex;align-items:center;gap:12px">
+    <span id="save-status"></span>
+    <button class="btn-export" onclick="exportCSV()">⬇ Export CSV</button>
+    <button class="btn-signout" onclick="signOut()">Sign Out</button>
+  </div>
+</div>
+
+<div class="month-nav">
+  <button class="btn-nav" onclick="prevMonth()">&#8249;</button>
+  <h2 id="month-label">—</h2>
+  <button id="today-btn" class="btn-today" onclick="goToday()" style="display:none">Today</button>
+  <button class="btn-nav" onclick="nextMonth()">&#8250;</button>
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" id="tab-dashboard"  onclick="switchTab('dashboard')">Dashboard</button>
+  <button class="tab-btn"        id="tab-income"     onclick="switchTab('income')">Income <span id="income-badge" class="tab-badge green" style="display:none"></span></button>
+  <button class="tab-btn"        id="tab-expenses"   onclick="switchTab('expenses')">Expenses <span id="expense-badge" class="tab-badge red" style="display:none"></span></button>
+  <button class="tab-btn"        id="tab-customers"  onclick="switchTab('customers')">Customers <span id="cust-badge"  class="tab-badge purple" style="display:none"></span></button>
+  <button class="tab-btn"        id="tab-seo"        onclick="switchTab('seo')">SEO <span id="seo-badge"    class="tab-badge" style="background:#e0f2fe;color:#0369a1;display:none"></span></button>
+  <button class="tab-btn"        id="tab-leads"      onclick="switchTab('leads')">Leads <span id="leads-badge" class="tab-badge" style="background:#f3e8ff;color:#7e22ce;display:none"></span></button>
+  <button class="tab-btn"        id="tab-invoices"   onclick="switchTab('invoices')">Invoices <span id="inv-badge" class="tab-badge" style="background:#fef3c7;color:#b45309;display:none"></span></button>
+</div>
+
+<div class="content">
+
+  <!-- ══ DASHBOARD ══ -->
+  <div class="panel active" id="panel-dashboard">
+    <p class="section-label" id="dash-month-label">—</p>
+    <div class="dash-table-wrap">
+      <table class="dash-tbl">
+        <thead>
+          <tr>
+            <th>Source</th>
+            <th>Revenue</th>
+            <th>Expenses</th>
+            <th>Net Profit</th>
+          </tr>
+        </thead>
+        <tbody id="dash-source-tbody"></tbody>
+      </table>
+    </div>
+
+    <p class="section-label" id="dash-ytd-label">Year to Date</p>
+    <div class="cards">
+      <div class="card"><div class="card-label">YTD Revenue</div><div class="card-amount green" id="d-ytd-rev">$0.00</div></div>
+      <div class="card"><div class="card-label">YTD Expenses</div><div class="card-amount red" id="d-ytd-exp">$0.00</div></div>
+      <div class="card"><div class="card-label">YTD Net Profit</div><div class="card-amount" id="d-ytd-profit">$0.00</div></div>
+    </div>
+
+    <p class="section-label" id="dash-year-label">—</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Month</th><th class="r">Revenue</th><th class="r">Expenses</th><th class="r">Net Profit</th><th class="r">Margin</th></tr></thead>
+        <tbody id="year-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══ INCOME ══ -->
+  <div class="panel" id="panel-income">
+    <div class="tab-header">
+      <div>
+        <div class="tab-header-sub" id="income-sub">0 entries</div>
+        <div class="tab-header-total green" id="income-total">$0.00</div>
+      </div>
+      <button class="btn btn-primary" onclick="openIncomeModal(null)">+ Add Income</button>
+    </div>
+    <div id="income-empty" class="empty-state" style="display:none">
+      <p id="income-empty-msg"></p>
+      <button class="btn btn-primary" onclick="openIncomeModal(null)">+ Add Income</button>
+    </div>
+    <div class="table-wrap" id="income-table-wrap">
+      <table><thead><tr><th>Date</th><th>Customer</th><th>Service</th><th class="r">Amount</th><th>Notes</th><th style="width:80px"></th></tr></thead>
+      <tbody id="income-tbody"></tbody></table>
+    </div>
+  </div>
+
+  <!-- ══ EXPENSES ══ -->
+  <div class="panel" id="panel-expenses">
+    <div class="tab-header">
+      <div>
+        <div class="tab-header-sub" id="expense-sub">0 entries</div>
+        <div class="tab-header-total red" id="expense-total">$0.00</div>
+      </div>
+      <button class="btn btn-primary" onclick="openExpenseModal(null)">+ Add Expense</button>
+    </div>
+    <div id="expense-empty" class="empty-state" style="display:none">
+      <p id="expense-empty-msg"></p>
+      <button class="btn btn-primary" onclick="openExpenseModal(null)">+ Add Expense</button>
+    </div>
+    <div class="table-wrap" id="expense-table-wrap">
+      <table><thead><tr><th>Date</th><th>Category</th><th>Description</th><th class="r">Amount</th><th style="width:80px"></th></tr></thead>
+      <tbody id="expense-tbody"></tbody></table>
+    </div>
+  </div>
+
+  <!-- ══ CUSTOMERS ══ -->
+  <div class="panel" id="panel-customers">
+    <div class="tab-header">
+      <div>
+        <div class="tab-header-sub" id="cust-sub">0 customers</div>
+      </div>
+      <div class="tab-header-right">
+        <div class="search-wrap">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="cust-search" placeholder="Search name, phone, address…" oninput="renderCustomers()">
+        </div>
+        <button class="btn btn-outline" onclick="openImportModal()">⬆ Import CSV</button>
+        <button class="btn btn-primary" onclick="openCustomerModal(null)">+ Add Customer</button>
+      </div>
+    </div>
+    <div id="cust-empty" class="empty-state" style="display:none">
+      <p>No customers yet. Add one or import from CSV.</p>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-outline" onclick="openImportModal()">⬆ Import CSV</button>
+        <button class="btn btn-primary" onclick="openCustomerModal(null)">+ Add Customer</button>
+      </div>
+    </div>
+    <div class="table-wrap" id="cust-table-wrap">
+      <table id="cust-table">
+        <thead><tr>
+          <th style="min-width:140px">Name</th>
+          <th style="min-width:130px">Phone</th>
+          <th style="min-width:140px">Address</th>
+          <th style="min-width:140px">Service</th>
+          <th class="r" style="min-width:80px">Quote</th>
+          <th class="r" style="min-width:80px">Final</th>
+          <th class="r" style="min-width:80px">Expenses</th>
+          <th class="r" style="min-width:80px">Profit</th>
+          <th style="min-width:95px">Job Date</th>
+          <th style="min-width:95px">Follow Up</th>
+          <th style="min-width:105px">Status</th>
+          <th style="min-width:55px">Paid</th>
+          <th style="min-width:110px">Lead Source</th>
+          <th style="min-width:160px">Notes</th>
+          <th style="min-width:80px"></th>
+        </tr></thead>
+        <tbody id="cust-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══ SEO TRACKER ══ -->
+  <!-- ══ SEO COMMAND CENTER ══ -->
+  <div class="panel" id="panel-seo">
+
+    <!-- Latest week summary cards -->
+    <div class="cards" id="seo-latest-cards" style="display:none;margin-bottom:22px">
+      <div class="card"><div class="card-label">Clicks</div><div class="card-amount green" id="seo-lc-clicks">—</div></div>
+      <div class="card"><div class="card-label">Impressions</div><div class="card-amount" id="seo-lc-impr">—</div></div>
+      <div class="card"><div class="card-label">CTR</div><div class="card-amount" id="seo-lc-ctr">—</div></div>
+      <div class="card"><div class="card-label">Avg. Position</div><div class="card-amount" id="seo-lc-pos">—</div></div>
+      <div class="card"><div class="card-label">GB Views</div><div class="card-amount" id="seo-lc-gb">—</div></div>
+      <div class="card"><div class="card-label">Calls (GB)</div><div class="card-amount green" id="seo-lc-calls">—</div></div>
+    </div>
+
+    <!-- Weekly Stats -->
+    <div class="seo-section">
+      <div class="seo-section-header">
+        <div><div class="seo-section-title">Weekly Stats</div></div>
+        <button class="btn btn-primary btn-xs" onclick="openSeoWeekModal(null)">+ Add Week</button>
+      </div>
+      <div id="seo-week-empty" class="empty-state" style="display:none;padding:28px 20px">
+        <p>No weekly stats yet. Enter data from Google Search Console &amp; Google Business Profile.</p>
+        <button class="btn btn-primary" onclick="openSeoWeekModal(null)">+ Add Week</button>
+      </div>
+      <div class="table-wrap" id="seo-week-table-wrap">
+        <table>
+          <thead><tr>
+            <th style="min-width:110px">Week of</th>
+            <th class="r" style="min-width:68px">Clicks</th>
+            <th class="r" style="min-width:95px">Impressions</th>
+            <th class="r" style="min-width:58px">CTR</th>
+            <th class="r" style="min-width:90px">Avg Pos</th>
+            <th class="r" style="min-width:80px">GB Views</th>
+            <th class="r" style="min-width:58px">Calls</th>
+            <th class="r" style="min-width:85px">Directions</th>
+            <th style="min-width:130px">Notes</th>
+            <th style="width:72px"></th>
+          </tr></thead>
+          <tbody id="seo-week-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Keyword Tracker -->
+    <div class="seo-section">
+      <div class="seo-section-header">
+        <div><div class="seo-section-title">Keyword Tracker</div><div class="seo-section-meta" id="kw-meta"></div></div>
+        <button class="btn btn-primary btn-xs" onclick="openKeywordModal(null)">+ Add Keyword</button>
+      </div>
+      <div id="kw-empty" class="empty-state" style="display:none;padding:28px 20px">
+        <p>No keywords tracked yet. Add the keywords you want to rank for.</p>
+        <button class="btn btn-primary" onclick="openKeywordModal(null)">+ Add Keyword</button>
+      </div>
+      <div class="table-wrap" id="kw-table-wrap">
+        <table>
+          <thead><tr>
+            <th style="min-width:190px">Keyword</th>
+            <th class="r" style="min-width:90px">Search Vol</th>
+            <th class="r" style="min-width:90px">Current Pos</th>
+            <th class="r" style="min-width:90px">Target Pos</th>
+            <th style="min-width:170px">Page Targeting</th>
+            <th style="min-width:120px">Status</th>
+            <th style="width:72px"></th>
+          </tr></thead>
+          <tbody id="kw-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Competitor Tracker -->
+    <div class="seo-section">
+      <div class="seo-section-header">
+        <div><div class="seo-section-title">Competitor Tracker</div><div class="seo-section-meta" id="comp-meta"></div></div>
+        <button class="btn btn-primary btn-xs" onclick="openCompetitorModal(null)">+ Add Competitor</button>
+      </div>
+      <div id="comp-empty" class="empty-state" style="display:none;padding:28px 20px">
+        <p>No competitors tracked yet. Add sites you're competing against.</p>
+        <button class="btn btn-primary" onclick="openCompetitorModal(null)">+ Add Competitor</button>
+      </div>
+      <div class="table-wrap" id="comp-table-wrap">
+        <table>
+          <thead><tr>
+            <th style="min-width:210px">URL</th>
+            <th class="r" style="min-width:90px">Ranking</th>
+            <th style="min-width:220px">Notes</th>
+            <th style="min-width:110px">Status</th>
+            <th style="width:72px"></th>
+          </tr></thead>
+          <tbody id="comp-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Page Rankings -->
+    <div class="seo-section">
+      <div class="seo-section-header">
+        <div><div class="seo-section-title">Page Rankings</div><div class="seo-section-meta" id="seo-page-sub"></div></div>
+        <button class="btn btn-primary btn-xs" onclick="openSeoPageModal(null)">+ Add Page</button>
+      </div>
+      <div class="table-wrap" id="seo-page-table-wrap">
+        <table>
+          <thead><tr>
+            <th style="min-width:190px">Page URL</th>
+            <th style="min-width:200px">Target Keyword</th>
+            <th class="r" style="min-width:90px">Position</th>
+            <th style="min-width:105px">Last Checked</th>
+            <th style="min-width:70px">Indexed</th>
+            <th style="min-width:160px">Notes</th>
+            <th style="width:72px"></th>
+          </tr></thead>
+          <tbody id="seo-page-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Wins Timeline -->
+    <div class="seo-section">
+      <div class="seo-section-header">
+        <div><div class="seo-section-title">SEO Wins Timeline</div><div class="seo-section-meta" id="wins-meta"></div></div>
+        <button class="btn btn-primary btn-xs" onclick="openWinModal(null)">+ Log Win</button>
+      </div>
+      <div id="wins-empty" class="empty-state" style="display:none;padding:28px 20px">
+        <p>No wins logged yet — start tracking every ranking improvement, new backlink, or traffic milestone.</p>
+        <button class="btn btn-primary" onclick="openWinModal(null)">+ Log Win</button>
+      </div>
+      <div id="wins-timeline"></div>
+    </div>
+
+    <!-- Monthly Goals -->
+    <div class="seo-section">
+      <div class="seo-section-header">
+        <div><div class="seo-section-title">Monthly Goals</div><div class="seo-section-meta" id="goals-meta"></div></div>
+        <button class="btn btn-primary btn-xs" onclick="openGoalModal(null)">+ Add Goal</button>
+      </div>
+      <div id="goals-empty" class="empty-state" style="display:none;padding:28px 20px">
+        <p>No goals set yet. Define your SEO targets month by month.</p>
+        <button class="btn btn-primary" onclick="openGoalModal(null)">+ Add Goal</button>
+      </div>
+      <div class="goals-grid" id="goals-grid"></div>
+    </div>
+
+  </div>
+
+  <!-- ══ LEADS ══ -->
+  <div class="panel" id="panel-leads">
+    <div class="tab-header">
+      <div><div class="tab-header-sub" id="leads-sub">0 leads</div></div>
+      <div class="tab-header-right">
+        <select id="lead-filter" onchange="renderLeads()" style="padding:7px 10px;border:1px solid var(--border);border-radius:7px;font-size:13px;font-family:inherit;background:var(--surface)">
+          <option value="">All Statuses</option>
+          <option value="New">New</option>
+          <option value="Contacted">Contacted</option>
+          <option value="Quoted">Quoted</option>
+          <option value="Won">Won</option>
+          <option value="Lost">Lost</option>
+        </select>
+        <div class="search-wrap">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="lead-search" placeholder="Search name, phone…" oninput="renderLeads()">
+        </div>
+        <button class="btn btn-primary" onclick="openLeadModal(null)">+ Add Lead</button>
+      </div>
+    </div>
+    <div class="sync-strip">
+      <span class="sync-label">Google Sheet</span>
+      <button class="btn btn-outline btn-xs" onclick="syncFromSheet()">⟳ Sync Now</button>
+      <span id="sync-status" style="font-size:12px;color:var(--muted)">Auto-syncs every 5 min</span>
+    </div>
+    <div id="lead-empty" class="empty-state" style="display:none">
+      <p>No leads yet. Start tracking potential customers here.</p>
+      <button class="btn btn-primary" onclick="openLeadModal(null)">+ Add Lead</button>
+    </div>
+    <div class="table-wrap" id="lead-table-wrap">
+      <table>
+        <thead><tr>
+          <th style="min-width:130px">Name</th>
+          <th style="min-width:130px">Phone</th>
+          <th style="min-width:110px">Lead Source</th>
+          <th style="min-width:150px">Service</th>
+          <th class="r" style="min-width:80px">Quote</th>
+          <th style="min-width:95px">Contacted</th>
+          <th style="min-width:95px">Follow Up</th>
+          <th style="min-width:105px">Status</th>
+          <th style="min-width:160px">Notes</th>
+          <th style="min-width:120px"></th>
+        </tr></thead>
+        <tbody id="lead-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══ INVOICES ══ -->
+  <div class="panel" id="panel-invoices">
+    <div class="tab-header">
+      <div><div class="tab-header-sub" id="inv-sub">0 invoices</div></div>
+      <button class="btn btn-primary" onclick="openInvoiceModal(null)">+ New Invoice</button>
+    </div>
+    <div id="inv-empty" class="empty-state" style="display:none">
+      <p>No invoices yet.</p>
+      <button class="btn btn-primary" onclick="openInvoiceModal(null)">+ Create First Invoice</button>
+    </div>
+    <div class="table-wrap" id="inv-table-wrap">
+      <table>
+        <thead><tr>
+          <th style="min-width:90px">Invoice #</th>
+          <th style="min-width:130px">Customer</th>
+          <th style="min-width:90px">Date</th>
+          <th style="min-width:90px">Job Date</th>
+          <th class="r" style="min-width:90px">Total</th>
+          <th style="min-width:80px">Status</th>
+          <th style="min-width:100px">Payment</th>
+          <th style="min-width:110px"></th>
+        </tr></thead>
+        <tbody id="inv-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div><!-- /content -->
+
+<!-- ── Income Modal ── -->
+<div class="modal-overlay" id="income-modal">
+  <div class="modal">
+    <div class="modal-header"><span id="income-modal-title">Add Income</span><button class="modal-close" onclick="closeModal('income-modal')">×</button></div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group"><label>Date *</label><input type="date" id="i-date"></div>
+        <div class="form-group"><label>Amount ($) *</label><input type="number" id="i-amount" min="0" step="0.01" placeholder="0.00"></div>
+      </div>
+      <div class="form-group"><label>Customer Name *</label><input type="text" id="i-customer" placeholder="e.g. John Smith"></div>
+      <div class="form-group">
+        <label>Service Type * <span class="label-hint">(select all that apply)</span></label>
+        <div class="checkbox-list" id="i-services">
+          <label class="checkbox-item"><input type="checkbox" value="Driveway Cleaning"> Driveway Cleaning</label>
+          <label class="checkbox-item"><input type="checkbox" value="House Washing"> House Washing</label>
+          <label class="checkbox-item"><input type="checkbox" value="Roof Cleaning"> Roof Cleaning</label>
+          <label class="checkbox-item"><input type="checkbox" value="Fence Cleaning"> Fence Cleaning</label>
+          <label class="checkbox-item"><input type="checkbox" value="Concrete Cleaning"> Concrete Cleaning</label>
+          <label class="checkbox-item"><input type="checkbox" value="Patio / Pool Deck"> Patio / Pool Deck</label>
+          <label class="checkbox-item"><input type="checkbox" value="Commercial Pressure Washing"> Commercial Pressure Washing</label>
+          <label class="checkbox-item"><input type="checkbox" value="Gutter Brightening"> Gutter Brightening</label>
+          <label class="checkbox-item"><input type="checkbox" value="Bundle / Multiple Services"> Bundle / Multiple Services</label>
+          <label class="checkbox-item"><input type="checkbox" value="Other"> Other</label>
+        </div>
+      </div>
+      <div class="form-group"><label>Notes (optional)</label><textarea id="i-notes" rows="2" placeholder="Address, job details…"></textarea></div>
+      <div class="error-msg" id="i-error" style="display:none"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('income-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="submitIncome()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Expense Modal ── -->
+<div class="modal-overlay" id="expense-modal">
+  <div class="modal">
+    <div class="modal-header"><span id="expense-modal-title">Add Expense</span><button class="modal-close" onclick="closeModal('expense-modal')">×</button></div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group"><label>Date *</label><input type="date" id="e-date"></div>
+        <div class="form-group"><label>Amount ($) *</label><input type="number" id="e-amount" min="0" step="0.01" placeholder="0.00"></div>
+      </div>
+      <div class="form-group">
+        <label>Category * <span class="label-hint">(select all that apply)</span></label>
+        <div class="checkbox-list" id="e-categories">
+          <label class="checkbox-item"><input type="checkbox" value="Equipment &amp; Tools"> Equipment &amp; Tools</label>
+          <label class="checkbox-item"><input type="checkbox" value="Cleaning Chemicals"> Cleaning Chemicals</label>
+          <label class="checkbox-item"><input type="checkbox" value="Fuel"> Fuel</label>
+          <label class="checkbox-item"><input type="checkbox" value="Vehicle Maintenance"> Vehicle Maintenance</label>
+          <label class="checkbox-item"><input type="checkbox" value="Insurance"> Insurance</label>
+          <label class="checkbox-item"><input type="checkbox" value="Marketing &amp; Advertising"> Marketing &amp; Advertising</label>
+          <label class="checkbox-item"><input type="checkbox" value="Licenses &amp; Permits"> Licenses &amp; Permits</label>
+          <label class="checkbox-item"><input type="checkbox" value="Labor / Subcontractors"> Labor / Subcontractors</label>
+          <label class="checkbox-item"><input type="checkbox" value="Office &amp; Admin"> Office &amp; Admin</label>
+          <label class="checkbox-item"><input type="checkbox" value="Other"> Other</label>
+        </div>
+      </div>
+      <div class="form-group"><label>Description *</label><input type="text" id="e-desc" placeholder="e.g. New surface cleaner, gas fill-up"></div>
+      <div class="error-msg" id="e-error" style="display:none"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('expense-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="submitExpense()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Customer Modal ── -->
+<div class="modal-overlay" id="customer-modal">
+  <div class="modal modal-wide">
+    <div class="modal-header"><span id="cust-modal-title">Add Customer</span><button class="modal-close" onclick="closeModal('customer-modal')">×</button></div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group"><label>Name *</label><input type="text" id="c-name" placeholder="Full name"></div>
+        <div class="form-group"><label>Phone</label><input type="tel" id="c-phone" placeholder="(XXX) XXX-XXXX"></div>
+      </div>
+      <div class="form-group"><label>Address</label><input type="text" id="c-address" placeholder="123 Main St, Cypress TX"></div>
+      <div class="form-group">
+        <label>Service Type <span class="label-hint">(select all that apply)</span></label>
+        <div class="checkbox-list" id="c-services">
+          <label class="checkbox-item"><input type="checkbox" value="Driveway Cleaning"> Driveway Cleaning</label>
+          <label class="checkbox-item"><input type="checkbox" value="House Washing"> House Washing</label>
+          <label class="checkbox-item"><input type="checkbox" value="Roof Cleaning"> Roof Cleaning</label>
+          <label class="checkbox-item"><input type="checkbox" value="Fence Cleaning"> Fence Cleaning</label>
+          <label class="checkbox-item"><input type="checkbox" value="Concrete Cleaning"> Concrete Cleaning</label>
+          <label class="checkbox-item"><input type="checkbox" value="Patio / Pool Deck"> Patio / Pool Deck</label>
+          <label class="checkbox-item"><input type="checkbox" value="Commercial Pressure Washing"> Commercial Pressure Washing</label>
+          <label class="checkbox-item"><input type="checkbox" value="Gutter Brightening"> Gutter Brightening</label>
+          <label class="checkbox-item"><input type="checkbox" value="Bundle / Multiple Services"> Bundle / Multiple Services</label>
+          <label class="checkbox-item"><input type="checkbox" value="Other"> Other</label>
+        </div>
+      </div>
+      <div class="form-row3">
+        <div class="form-group"><label>Quote Price ($)</label><input type="number" id="c-quote" min="0" step="0.01" placeholder="0.00"></div>
+        <div class="form-group"><label>Final Price ($)</label><input type="number" id="c-final" min="0" step="0.01" placeholder="0.00"></div>
+        <div class="form-group"><label>Job Expenses ($)</label><input type="number" id="c-expenses" min="0" step="0.01" placeholder="0.00"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Job Date</label><input type="date" id="c-jobdate"></div>
+        <div class="form-group"><label>Follow Up Date</label><input type="date" id="c-followup"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Status</label>
+          <select id="c-status">
+            <option value="Lead">Lead</option>
+            <option value="Quoted">Quoted</option>
+            <option value="Scheduled">Scheduled</option>
+            <option value="Completed">Completed</option>
+            <option value="Cancelled">Cancelled</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Lead Source</label>
+          <select id="c-source">
+            <option value="">— Select —</option>
+            <option>Google</option>
+            <option>Referral</option>
+            <option>Door Hanger</option>
+            <option>Facebook</option>
+            <option>Instagram</option>
+            <option>NextDoor</option>
+            <option>Yelp</option>
+            <option>Repeat Customer</option>
+            <option>Other</option>
+          </select>
+        </div>
+      </div>
+      <label class="toggle-row">
+        <input type="checkbox" id="c-paid">
+        <span class="toggle-label">Paid</span>
+      </label>
+      <div class="form-group"><label>Notes</label><textarea id="c-notes" rows="2" placeholder="Job notes, special instructions…"></textarea></div>
+      <div class="error-msg" id="c-error" style="display:none"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('customer-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="submitCustomer()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── SEO Weekly Stats Modal ── -->
+<div class="modal-overlay" id="seo-week-modal">
+  <div class="modal">
+    <div class="modal-header"><span id="seo-week-modal-title">Add Weekly Stats</span><button class="modal-close" onclick="closeModal('seo-week-modal')">×</button></div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group"><label>Week of (Monday) *</label><input type="date" id="sw-week"></div>
+        <div class="form-group"><label>Avg. Position</label><input type="number" id="sw-pos" min="0" step="0.1" placeholder="e.g. 14.2"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Clicks</label><input type="number" id="sw-clicks" min="0" placeholder="0"></div>
+        <div class="form-group"><label>Impressions</label><input type="number" id="sw-impr" min="0" placeholder="0"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>CTR (%)</label><input type="number" id="sw-ctr" min="0" max="100" step="0.01" placeholder="e.g. 3.5"></div>
+        <div class="form-group"><label>Google Business Views</label><input type="number" id="sw-gbviews" min="0" placeholder="0"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Calls (from GB)</label><input type="number" id="sw-calls" min="0" placeholder="0"></div>
+        <div class="form-group"><label>Direction Requests</label><input type="number" id="sw-dirs" min="0" placeholder="0"></div>
+      </div>
+      <div class="form-group"><label>Notes</label><textarea id="sw-notes" rows="2" placeholder="Any observations this week…"></textarea></div>
+      <div class="error-msg" id="sw-error" style="display:none"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('seo-week-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="submitSeoWeek()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── SEO Page Ranking Modal ── -->
+<div class="modal-overlay" id="seo-page-modal">
+  <div class="modal">
+    <div class="modal-header"><span id="seo-page-modal-title">Edit Page</span><button class="modal-close" onclick="closeModal('seo-page-modal')">×</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label>Page URL *</label><input type="text" id="sp-url" placeholder="https://rosepowerwashingtx.com/..."></div>
+      <div class="form-group"><label>Target Keyword</label><input type="text" id="sp-keyword" placeholder="e.g. pressure washing Cypress TX"></div>
+      <div class="form-row">
+        <div class="form-group"><label>Ranking Position</label><input type="number" id="sp-pos" min="1" placeholder="e.g. 7"></div>
+        <div class="form-group"><label>Last Checked</label><input type="date" id="sp-checked"></div>
+      </div>
+      <label class="toggle-row">
+        <input type="checkbox" id="sp-indexed" checked>
+        <span class="toggle-label">Indexed by Google</span>
+      </label>
+      <div class="form-group"><label>Notes</label><textarea id="sp-notes" rows="2" placeholder="Strategy notes, observations…"></textarea></div>
+      <div class="error-msg" id="sp-error" style="display:none"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('seo-page-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="submitSeoPage()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Competitor Modal ── -->
+<div class="modal-overlay" id="competitor-modal">
+  <div class="modal">
+    <div class="modal-header"><span id="comp-modal-title">Add Competitor</span><button class="modal-close" onclick="closeModal('competitor-modal')">×</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label>Competitor URL *</label><input type="text" id="co-url" placeholder="https://competitor.com"></div>
+      <div class="form-row">
+        <div class="form-group"><label>Their Ranking Position</label><input type="number" id="co-ranking" min="1" placeholder="e.g. 4"></div>
+        <div class="form-group">
+          <label>Status</label>
+          <select id="co-status">
+            <option value="Not Yet">Not Yet</option>
+            <option value="Beating">Beating</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group"><label>Notes</label><textarea id="co-notes" rows="2" placeholder="What they do well, their weaknesses, strategy…"></textarea></div>
+      <div class="error-msg" id="co-error" style="display:none"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('competitor-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="submitCompetitor()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Keyword Modal ── -->
+<div class="modal-overlay" id="keyword-modal">
+  <div class="modal">
+    <div class="modal-header"><span id="kw-modal-title">Add Keyword</span><button class="modal-close" onclick="closeModal('keyword-modal')">×</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label>Keyword *</label><input type="text" id="kw-keyword" placeholder="e.g. pressure washing Cypress TX"></div>
+      <div class="form-row">
+        <div class="form-group"><label>Search Volume</label><input type="number" id="kw-volume" min="0" placeholder="e.g. 1200"></div>
+        <div class="form-group">
+          <label>Status</label>
+          <select id="kw-status">
+            <option value="Not Ranking">Not Ranking</option>
+            <option value="Improving">Improving</option>
+            <option value="Page 1">Page 1</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Current Position</label><input type="number" id="kw-current" min="0" placeholder="e.g. 14"></div>
+        <div class="form-group"><label>Target Position</label><input type="number" id="kw-target" min="1" placeholder="e.g. 3"></div>
+      </div>
+      <div class="form-group"><label>Page Targeting It</label><input type="text" id="kw-page" placeholder="e.g. /pressure-washing-cypress-tx"></div>
+      <div class="error-msg" id="kw-error" style="display:none"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('keyword-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="submitKeyword()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Win Modal ── -->
+<div class="modal-overlay" id="win-modal">
+  <div class="modal">
+    <div class="modal-header"><span id="win-modal-title">Log SEO Win</span><button class="modal-close" onclick="closeModal('win-modal')">×</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label>Date *</label><input type="date" id="win-date"></div>
+      <div class="form-group"><label>Win *</label><input type="text" id="win-title" placeholder="e.g. Ranked #1 for 'pressure washing Cypress TX'"></div>
+      <div class="form-group"><label>Notes</label><textarea id="win-notes" rows="3" placeholder="What you did, the impact, traffic change…"></textarea></div>
+      <div class="error-msg" id="win-error" style="display:none"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('win-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="submitWin()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Goal Modal ── -->
+<div class="modal-overlay" id="goal-modal">
+  <div class="modal">
+    <div class="modal-header"><span id="goal-modal-title">Add Goal</span><button class="modal-close" onclick="closeModal('goal-modal')">×</button></div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group"><label>Month *</label><input type="month" id="goal-month"></div>
+        <div class="form-group"><label>Progress (%)</label><input type="number" id="goal-progress" min="0" max="100" placeholder="0"></div>
+      </div>
+      <div class="form-group"><label>Goal *</label><input type="text" id="goal-text" placeholder="e.g. Rank on page 1 for 3 target keywords"></div>
+      <label class="toggle-row" style="margin-top:2px">
+        <input type="checkbox" id="goal-completed">
+        <span class="toggle-label">Completed</span>
+      </label>
+      <div class="form-group"><label>Notes</label><textarea id="goal-notes" rows="2" placeholder="Strategy, blockers, next steps…"></textarea></div>
+      <div class="error-msg" id="goal-error" style="display:none"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('goal-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="submitGoal()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Lead Modal ── -->
+<div class="modal-overlay" id="lead-modal">
+  <div class="modal modal-wide">
+    <div class="modal-header"><span id="lead-modal-title">Add Lead</span><button class="modal-close" onclick="closeModal('lead-modal')">×</button></div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group"><label>Name *</label><input type="text" id="l-name" placeholder="Full name"></div>
+        <div class="form-group"><label>Phone</label><input type="tel" id="l-phone" placeholder="(XXX) XXX-XXXX"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Lead Source</label>
+          <select id="l-source">
+            <option value="">— Select —</option>
+            <option>Google</option><option>Referral</option><option>Door Hanger</option>
+            <option>Facebook</option><option>Instagram</option><option>NextDoor</option>
+            <option>Yelp</option><option>Repeat Customer</option><option>Other</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Status</label>
+          <select id="l-status">
+            <option value="New">New</option>
+            <option value="Contacted">Contacted</option>
+            <option value="Quoted">Quoted</option>
+            <option value="Won">Won</option>
+            <option value="Lost">Lost</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Service Interested In <span class="label-hint">(select all that apply)</span></label>
+        <div class="checkbox-list" id="l-services">
+          <label class="checkbox-item"><input type="checkbox" value="Driveway Cleaning"> Driveway Cleaning</label>
+          <label class="checkbox-item"><input type="checkbox" value="House Washing"> House Washing</label>
+          <label class="checkbox-item"><input type="checkbox" value="Roof Cleaning"> Roof Cleaning</label>
+          <label class="checkbox-item"><input type="checkbox" value="Fence Cleaning"> Fence Cleaning</label>
+          <label class="checkbox-item"><input type="checkbox" value="Concrete Cleaning"> Concrete Cleaning</label>
+          <label class="checkbox-item"><input type="checkbox" value="Patio / Pool Deck"> Patio / Pool Deck</label>
+          <label class="checkbox-item"><input type="checkbox" value="Commercial Pressure Washing"> Commercial Pressure Washing</label>
+          <label class="checkbox-item"><input type="checkbox" value="Gutter Brightening"> Gutter Brightening</label>
+          <label class="checkbox-item"><input type="checkbox" value="Bundle / Multiple Services"> Bundle / Multiple Services</label>
+          <label class="checkbox-item"><input type="checkbox" value="Other"> Other</label>
+        </div>
+      </div>
+      <div class="form-row3">
+        <div class="form-group"><label>Quote Amount ($)</label><input type="number" id="l-quote" min="0" step="0.01" placeholder="0.00"></div>
+        <div class="form-group"><label>Date Contacted</label><input type="date" id="l-contacted"></div>
+        <div class="form-group"><label>Follow Up Date</label><input type="date" id="l-followup"></div>
+      </div>
+      <div class="form-group"><label>Notes</label><textarea id="l-notes" rows="2" placeholder="Job details, special requests…"></textarea></div>
+      <div class="error-msg" id="l-error" style="display:none"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('lead-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="submitLead()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Invoice Modal ── -->
+<div class="modal-overlay" id="invoice-modal">
+  <div class="modal" style="max-width:680px">
+    <div class="modal-header">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span id="inv-modal-title">New Invoice</span>
+        <span id="inv-number-display" style="font-size:12px;color:var(--muted);font-weight:600"></span>
+      </div>
+      <button class="modal-close" onclick="closeModal('invoice-modal')">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="_inv-number">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Customer</label>
+          <select id="inv-customer-select" onchange="fillInvoiceCustomer()"><option value="">— Manual entry —</option></select>
+        </div>
+        <div class="form-group"><label>Invoice Date</label><input type="date" id="inv-date"></div>
+      </div>
+      <div class="form-group"><label>Customer Name *</label><input type="text" id="inv-cust-name" placeholder="Full name"></div>
+      <div class="form-row">
+        <div class="form-group"><label>Phone</label><input type="tel" id="inv-cust-phone" placeholder="(XXX) XXX-XXXX"></div>
+        <div class="form-group"><label>Job Date</label><input type="date" id="inv-jobdate"></div>
+      </div>
+      <div class="form-group"><label>Address</label><input type="text" id="inv-cust-address" placeholder="Street, City, TX"></div>
+      <div class="form-group">
+        <label>Services <span class="label-hint">(optional)</span></label>
+        <div class="checkbox-list" id="inv-services">
+          <label class="checkbox-item"><input type="checkbox" value="Driveway Cleaning"> Driveway Cleaning</label>
+          <label class="checkbox-item"><input type="checkbox" value="House Washing"> House Washing</label>
+          <label class="checkbox-item"><input type="checkbox" value="Roof Cleaning"> Roof Cleaning</label>
+          <label class="checkbox-item"><input type="checkbox" value="Fence Cleaning"> Fence Cleaning</label>
+          <label class="checkbox-item"><input type="checkbox" value="Concrete Cleaning"> Concrete Cleaning</label>
+          <label class="checkbox-item"><input type="checkbox" value="Patio / Pool Deck"> Patio / Pool Deck</label>
+          <label class="checkbox-item"><input type="checkbox" value="Commercial Pressure Washing"> Commercial Pressure Washing</label>
+          <label class="checkbox-item"><input type="checkbox" value="Gutter Brightening"> Gutter Brightening</label>
+          <label class="checkbox-item"><input type="checkbox" value="Bundle / Multiple Services"> Bundle / Multiple Services</label>
+          <label class="checkbox-item"><input type="checkbox" value="Other"> Other</label>
+        </div>
+      </div>
+      <!-- Line items -->
+      <div style="margin-top:4px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+          <label style="font-size:13px;font-weight:600;color:var(--text)">Line Items *</label>
+          <button class="btn btn-outline btn-xs" onclick="addInvoiceLineItem()">+ Add Line</button>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 110px 30px;gap:6px;margin-bottom:4px;padding:0 4px">
+          <span style="font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em">Description</span>
+          <span style="font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em">Amount</span>
+          <span></span>
+        </div>
+        <div id="line-items-container"></div>
+        <div class="inv-totals">
+          <div class="inv-totals-row"><span>Subtotal</span><span id="inv-subtotal-display">$0.00</span></div>
+          <div class="inv-totals-row" id="inv-discount-row" style="display:none"><span>Discount</span><span id="inv-discount-display">—</span></div>
+          <div class="inv-total-big"><span>Total Due</span><span id="inv-total-display">$0.00</span></div>
+        </div>
+      </div>
+      <div class="form-row" style="margin-top:12px">
+        <div class="form-group"><label>Discount ($)</label><input type="number" id="inv-discount" min="0" step="0.01" placeholder="0.00" oninput="updateInvoiceTotals()"></div>
+        <div class="form-group">
+          <label>Payment Method</label>
+          <select id="inv-payment">
+            <option value="">— Select —</option>
+            <option>Cash</option><option>Check</option><option>Venmo</option>
+            <option>Zelle</option><option>Credit Card</option><option>Other</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:600;font-size:13px">
+            <input type="checkbox" id="inv-paid" style="width:15px;height:15px;margin:0"> Mark as Paid
+          </label>
+        </div>
+        <div class="form-group"><label>Paid Date</label><input type="date" id="inv-paiddate"></div>
+      </div>
+      <div class="form-group"><label>Notes</label><textarea id="inv-notes" rows="2" placeholder="Any additional info…"></textarea></div>
+      <div class="error-msg" id="inv-error" style="display:none"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('invoice-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="submitInvoice()">Save Invoice</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── CSV Import Modal ── -->
+<div class="modal-overlay" id="import-modal">
+  <div class="modal modal-xl">
+    <div class="modal-header"><span>Import Customers from CSV</span><button class="modal-close" onclick="closeModal('import-modal')">×</button></div>
+    <div class="modal-body">
+      <div class="drop-zone" id="drop-zone" onclick="el('csv-file-input').click()"
+           ondragover="event.preventDefault();this.classList.add('dragover')"
+           ondragleave="this.classList.remove('dragover')"
+           ondrop="handleDrop(event)">
+        <strong>Drop your CSV file here</strong>
+        Click to browse — or drag and drop
+      </div>
+      <input type="file" id="csv-file-input" accept=".csv" style="display:none" onchange="handleFileSelect(event)">
+
+      <div id="import-mapper" style="display:none">
+        <p style="font-size:13px;font-weight:600;margin-bottom:8px" id="import-file-info"></p>
+        <p class="section-label" style="margin-bottom:6px">Map CSV columns to fields</p>
+        <div class="mapper-grid" id="mapper-grid"></div>
+        <p class="section-label" style="margin-top:14px;margin-bottom:6px">Preview (first 2 rows)</p>
+        <div class="import-preview" id="import-preview"></div>
+      </div>
+      <div class="error-msg" id="import-error" style="display:none"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('import-modal')">Cancel</button>
+      <button class="btn btn-primary" id="import-btn" onclick="runImport()" style="display:none">Import</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+const SERVICE_OPTS = ['Driveway Cleaning','House Washing','Roof Cleaning','Fence Cleaning','Concrete Cleaning','Patio / Pool Deck','Commercial Pressure Washing','Gutter Brightening','Bundle / Multiple Services','Other'];
+
+// ── State ──────────────────────────────────────────────────────────────────────
+let data = {};
+let curYear  = new Date().getFullYear();
+let curMonth = new Date().getMonth() + 1;
+let activeTab = 'dashboard';
+let editingIncomeId   = null;
+let editingExpenseId  = null;
+let editingCustomerId = null;
+let editingSeoWeekId   = null;
+let editingSeoPageId   = null;
+let editingLeadId      = null;
+let editingCompetitorId = null;
+let editingKeywordId   = null;
+let editingWinId       = null;
+let editingGoalId      = null;
+let editingInvoiceId   = null;
+let deleteConfirm     = null;
+let csvHeaders  = [];
+let csvRows     = [];
+
+// ── Persistence ────────────────────────────────────────────────────────────────
+function normalizeData(d) {
+  d.income     = (d.income||[]).map(e => ({...e, serviceTypes: e.serviceTypes||(e.serviceType?[e.serviceType]:[])}));
+  d.expenses   = (d.expenses||[]).map(e => ({...e, categories: e.categories||(e.category?[e.category]:[])}));
+  d.customers  = (d.customers||[]);
+  d.seoWeekly      = (d.seoWeekly||[]);
+  d.seoPages       = (d.seoPages && d.seoPages.length > 0) ? d.seoPages : defaultSeoPages();
+  d.seoCompetitors = (d.seoCompetitors||[]);
+  d.seoKeywords    = (d.seoKeywords||[]);
+  d.seoWins        = (d.seoWins||[]);
+  d.seoGoals       = (d.seoGoals||[]);
+  d.leads          = (d.leads||[]);
+  d.invoices       = (d.invoices||[]);
+  return d;
+}
+async function loadData() {
+  const resp = await fetch('/api/data');
+  if (!resp.ok) throw new Error('Failed to load data');
+  const raw = await resp.json();
+  Object.assign(data, normalizeData(raw));
+}
+let _saveTimer;
+function saveData() {
+  const s = el('save-status');
+  if (s) { s.textContent = 'Saving…'; s.style.opacity = '1'; }
+  clearTimeout(_saveTimer);
+  _saveTimer = setTimeout(async () => {
+    try {
+      const r = await fetch('/api/data', {
+        method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data),
+      });
+      if (!r.ok) throw new Error('Save failed');
+      if (s) { s.textContent = '✓ Saved'; setTimeout(() => { s.style.opacity = '0'; }, 1800); }
+    } catch(err) {
+      if (s) { s.textContent = '⚠ Not saved'; s.style.opacity = '1'; }
+    }
+  }, 600);
+}
+
+// ── Helpers ────────────────────────────────────────────────────────────────────
+function fmt(n)  { return (n||0).toLocaleString('en-US',{style:'currency',currency:'USD'}); }
+function todayStr() { const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function parseYM(s) { const p=s.split('-'); return {year:+p[0],month:+p[1]}; }
+function fmtDate(iso) { if(!iso) return '—'; const [y,m,d]=iso.split('-'); return m+'/'+d+'/'+y; }
+function uid()   { return Date.now().toString(36)+Math.random().toString(36).slice(2); }
+function colorClass(n) { return n>=0?'pos':'neg'; }
+function esc(s)  { return (s||'').replace(/"/g,'""'); }
+function escHtml(s) { return (s||'').toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function el(id)  { return document.getElementById(id); }
+function sumAmt(arr) { return arr.reduce((s,e)=>s+(+e.amount||0),0); }
+
+function statusBadge(status) {
+  const cls = {Lead:'badge-lead',Quoted:'badge-quoted',Scheduled:'badge-scheduled',Completed:'badge-completed',Cancelled:'badge-cancelled'}[status]||'badge-lead';
+  return `<span class="badge ${cls}">${escHtml(status||'Lead')}</span>`;
+}
+
+// ── Derived ────────────────────────────────────────────────────────────────────
+function monthIncome()    { return data.income.filter(e=>{const d=parseYM(e.date);return d.year===curYear&&d.month===curMonth;}).sort((a,b)=>a.date.localeCompare(b.date)); }
+function monthExpenses()  { return data.expenses.filter(e=>{const d=parseYM(e.date);return d.year===curYear&&d.month===curMonth;}).sort((a,b)=>a.date.localeCompare(b.date)); }
+
+function custForMonth(y, m) {
+  return data.customers.filter(c => {
+    if (!c.jobDate) return false;
+    const d = parseYM(c.jobDate);
+    return d.year===y && d.month===m;
+  });
+}
+
+function custRevenue(custs)  { return custs.filter(c=>c.status==='Completed').reduce((s,c)=>s+(+c.finalPrice||0),0); }
+function custExpenses(custs) { return custs.reduce((s,c)=>s+(+c.expenses||0),0); }
+
+// ── Navigation ─────────────────────────────────────────────────────────────────
+function prevMonth() { deleteConfirm=null; if(curMonth===1){curMonth=12;curYear--;}else curMonth--; render(); }
+function nextMonth() { deleteConfirm=null; if(curMonth===12){curMonth=1;curYear++;}else curMonth++; render(); }
+function goToday()   { const n=new Date(); curYear=n.getFullYear(); curMonth=n.getMonth()+1; render(); }
+function jumpToMonth(m) { curMonth=m; deleteConfirm=null; render(); }
+
+// ── Tabs ───────────────────────────────────────────────────────────────────────
+function switchTab(name) {
+  activeTab = name;
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  el('tab-'+name).classList.add('active');
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  el('panel-'+name).classList.add('active');
+}
+
+// ── Render ─────────────────────────────────────────────────────────────────────
+function render() {
+  const now = new Date();
+  const isToday = curYear===now.getFullYear()&&curMonth===now.getMonth()+1;
+  el('month-label').textContent = MONTHS[curMonth-1]+' '+curYear;
+  el('today-btn').style.display = isToday?'none':'';
+  renderDashboard();
+  renderIncome();
+  renderExpenses();
+  renderCustomers();
+  renderSEO();
+  renderLeads();
+  renderInvoices();
+}
+
+function renderDashboard() {
+  el('dash-month-label').textContent = MONTHS[curMonth-1]+' '+curYear;
+  el('dash-ytd-label').textContent   = 'Year to Date — Jan through '+MONTHS[curMonth-1]+' '+curYear;
+  el('dash-year-label').textContent  = curYear+' — Month by Month';
+
+  const inc = monthIncome();
+  const exp = monthExpenses();
+  const manRev  = sumAmt(inc);
+  const manExp  = sumAmt(exp);
+
+  const custs   = custForMonth(curYear, curMonth);
+  const cusRev  = custRevenue(custs);
+  const cusExp  = custExpenses(custs);
+
+  const totRev  = manRev + cusRev;
+  const totExp  = manExp + cusExp;
+  const totProfit = totRev - totExp;
+
+  el('dash-source-tbody').innerHTML = `
+    <tr>
+      <td>Customer Jobs</td>
+      <td class="td-green">${fmt(cusRev)}</td>
+      <td class="td-red">${fmt(cusExp)}</td>
+      <td class="${colorClass(cusRev-cusExp)==='pos'?'td-green':'td-red'}">${fmt(cusRev-cusExp)}</td>
+    </tr>
+    <tr>
+      <td>Manual Entries</td>
+      <td class="td-green">${fmt(manRev)}</td>
+      <td class="td-red">${fmt(manExp)}</td>
+      <td class="${colorClass(manRev-manExp)==='pos'?'td-green':'td-red'}">${fmt(manRev-manExp)}</td>
+    </tr>
+    <tr class="dash-combined">
+      <td>Combined</td>
+      <td class="td-green">${fmt(totRev)}</td>
+      <td class="td-red">${fmt(totExp)}</td>
+      <td class="${colorClass(totProfit)==='pos'?'td-green':'td-red'}">${fmt(totProfit)}</td>
+    </tr>
+  `;
+
+  // YTD
+  let ytdMR=0,ytdME=0,ytdCR=0,ytdCE=0;
+  for(let m=1;m<=curMonth;m++){
+    ytdMR += sumAmt(data.income.filter(e=>{const d=parseYM(e.date);return d.year===curYear&&d.month===m;}));
+    ytdME += sumAmt(data.expenses.filter(e=>{const d=parseYM(e.date);return d.year===curYear&&d.month===m;}));
+    const cc = custForMonth(curYear,m);
+    ytdCR += custRevenue(cc);
+    ytdCE += custExpenses(cc);
+  }
+  const ytdR=ytdMR+ytdCR, ytdE=ytdME+ytdCE, ytdP=ytdR-ytdE;
+  el('d-ytd-rev').textContent    = fmt(ytdR);
+  el('d-ytd-exp').textContent    = fmt(ytdE);
+  el('d-ytd-profit').textContent = fmt(ytdP);
+  el('d-ytd-profit').className   = 'card-amount '+(ytdP>=0?'pos':'neg');
+
+  // Year breakdown
+  let totYR=0,totYE=0;
+  const rows = MONTHS.map((name,i)=>{
+    const m=i+1;
+    const mr = sumAmt(data.income.filter(e=>{const d=parseYM(e.date);return d.year===curYear&&d.month===m;}));
+    const me = sumAmt(data.expenses.filter(e=>{const d=parseYM(e.date);return d.year===curYear&&d.month===m;}));
+    const cc = custForMonth(curYear,m);
+    const cr = custRevenue(cc), ce = custExpenses(cc);
+    const r=mr+cr, x=me+ce, p=r-x;
+    totYR+=r; totYE+=x;
+    const has=r>0||x>0;
+    return {m,name,r,x,p,has,margin:r>0?Math.round(p/r*100)+'%':'—'};
+  });
+  const totYP=totYR-totYE;
+  el('year-tbody').innerHTML = rows.map(row=>`
+    <tr class="clickable${row.m===curMonth?' selected':''}" onclick="jumpToMonth(${row.m})">
+      <td>${row.name}</td>
+      <td class="r td-green">${row.r>0?fmt(row.r):'—'}</td>
+      <td class="r td-red">${row.x>0?fmt(row.x):'—'}</td>
+      <td class="r ${row.has?(row.p>=0?'td-green':'td-red'):''}">${row.has?fmt(row.p):'—'}</td>
+      <td class="r td-muted">${row.margin}</td>
+    </tr>`).join('')+`
+    <tr class="total-row">
+      <td>Total ${curYear}</td>
+      <td class="r td-green">${fmt(totYR)}</td>
+      <td class="r td-red">${fmt(totYE)}</td>
+      <td class="r ${totYP>=0?'td-green':'td-red'}">${fmt(totYP)}</td>
+      <td class="r td-muted">${totYR>0?Math.round(totYP/totYR*100)+'%':'—'}</td>
+    </tr>`;
+}
+
+function renderIncome() {
+  const inc = monthIncome();
+  const rev = sumAmt(inc);
+  el('income-sub').textContent = inc.length+(inc.length===1?' entry':' entries')+' · '+MONTHS[curMonth-1]+' '+curYear;
+  el('income-total').textContent = fmt(rev);
+  const b=el('income-badge'); b.textContent=inc.length; b.style.display=inc.length>0?'':'none';
+  el('income-empty-msg').textContent='No income recorded for '+MONTHS[curMonth-1]+' '+curYear+'.';
+  if(inc.length===0){el('income-empty').style.display='';el('income-table-wrap').style.display='none';return;}
+  el('income-empty').style.display='none'; el('income-table-wrap').style.display='';
+  el('income-tbody').innerHTML = inc.map(e=>{
+    const badges=(e.serviceTypes||[]).map(s=>`<span class="badge badge-secondary">${escHtml(s)}</span>`).join(' ');
+    if(deleteConfirm===e.id) return `<tr><td class="td-muted">${fmtDate(e.date)}</td><td>${escHtml(e.customerName)}</td><td><div class="badge-list">${badges}</div></td><td class="r td-green">${fmt(e.amount)}</td><td class="td-wrap td-muted">${escHtml(e.notes)||'—'}</td><td><div class="del-confirm"><span class="del-label">Delete?</span><button class="btn btn-destructive btn-xs" onclick="confirmDelete('${e.id}','income')">✓</button><button class="btn btn-outline btn-xs" onclick="cancelDelete()">✕</button></div></td></tr>`;
+    return `<tr><td class="td-muted">${fmtDate(e.date)}</td><td><strong>${escHtml(e.customerName)}</strong></td><td><div class="badge-list">${badges}</div></td><td class="r td-green">${fmt(e.amount)}</td><td class="td-wrap td-muted">${escHtml(e.notes)||'—'}</td><td><button class="btn btn-ghost icon-btn" onclick="openIncomeModal('${e.id}')" title="Edit">✎</button><button class="btn btn-ghost icon-btn danger" onclick="askDelete('${e.id}')" title="Delete">🗑</button></td></tr>`;
+  }).join('');
+}
+
+function renderExpenses() {
+  const exp = monthExpenses();
+  const tot = sumAmt(exp);
+  el('expense-sub').textContent = exp.length+(exp.length===1?' entry':' entries')+' · '+MONTHS[curMonth-1]+' '+curYear;
+  el('expense-total').textContent = fmt(tot);
+  const b=el('expense-badge'); b.textContent=exp.length; b.style.display=exp.length>0?'':'none';
+  el('expense-empty-msg').textContent='No expenses recorded for '+MONTHS[curMonth-1]+' '+curYear+'.';
+  if(exp.length===0){el('expense-empty').style.display='';el('expense-table-wrap').style.display='none';return;}
+  el('expense-empty').style.display='none'; el('expense-table-wrap').style.display='';
+  el('expense-tbody').innerHTML = exp.map(e=>{
+    const badges=(e.categories||[]).map(c=>`<span class="badge badge-outline">${escHtml(c)}</span>`).join(' ');
+    if(deleteConfirm===e.id) return `<tr><td class="td-muted">${fmtDate(e.date)}</td><td><div class="badge-list">${badges}</div></td><td>${escHtml(e.description)}</td><td class="r td-red">${fmt(e.amount)}</td><td><div class="del-confirm"><span class="del-label">Delete?</span><button class="btn btn-destructive btn-xs" onclick="confirmDelete('${e.id}','expense')">✓</button><button class="btn btn-outline btn-xs" onclick="cancelDelete()">✕</button></div></td></tr>`;
+    return `<tr><td class="td-muted">${fmtDate(e.date)}</td><td><div class="badge-list">${badges}</div></td><td><strong>${escHtml(e.description)}</strong></td><td class="r td-red">${fmt(e.amount)}</td><td><button class="btn btn-ghost icon-btn" onclick="openExpenseModal('${e.id}')" title="Edit">✎</button><button class="btn btn-ghost icon-btn danger" onclick="askDelete('${e.id}')" title="Delete">🗑</button></td></tr>`;
+  }).join('');
+}
+
+function renderCustomers() {
+  const q = (el('cust-search').value||'').toLowerCase().trim();
+  let custs = [...data.customers].sort((a,b)=>(a.name||'').localeCompare(b.name||''));
+  if(q) custs = custs.filter(c=>(c.name+' '+c.phone+' '+c.address+' '+c.notes).toLowerCase().includes(q));
+
+  const b=el('cust-badge'); b.textContent=data.customers.length; b.style.display=data.customers.length>0?'':'none';
+  el('cust-sub').textContent = data.customers.length+' customer'+(data.customers.length===1?'':'s')+(q?' ('+custs.length+' shown)':'');
+
+  if(data.customers.length===0){el('cust-empty').style.display='';el('cust-table-wrap').style.display='none';return;}
+  el('cust-empty').style.display='none'; el('cust-table-wrap').style.display='';
+
+  el('cust-tbody').innerHTML = custs.map(c=>{
+    const profit = (+(c.finalPrice)||0) - (+(c.expenses)||0);
+    const phone  = escHtml(c.phone||'');
+    const rawPhone = (c.phone||'').replace(/\D/g,'');
+    const phoneBtns = rawPhone ? `<div style="margin-top:4px;display:flex;gap:4px"><a class="btn-call" href="tel:+1${rawPhone}">📞 Call</a><a class="btn-sms" href="sms:+1${rawPhone}">💬 Text</a></div>` : '';
+    const svcBadges = (c.serviceTypes||[]).map(s=>`<span class="badge badge-secondary">${escHtml(s)}</span>`).join(' ');
+    const paidCell  = c.paid ? '<span style="color:var(--green);font-weight:700">✓</span>' : '<span style="color:var(--red);opacity:.5">—</span>';
+
+    if(deleteConfirm===c.id) return `<tr>
+      <td>${escHtml(c.name)}</td><td>${phone}</td><td class="td-wrap">${escHtml(c.address||'')}</td>
+      <td><div class="badge-list">${svcBadges}</div></td>
+      <td class="r td-muted">${c.quotePrice>0?fmt(c.quotePrice):'—'}</td>
+      <td class="r td-green">${c.finalPrice>0?fmt(c.finalPrice):'—'}</td>
+      <td class="r td-red">${c.expenses>0?fmt(c.expenses):'—'}</td>
+      <td class="r ${profit>=0?'td-green':'td-red'}">${(c.finalPrice>0||c.expenses>0)?fmt(profit):'—'}</td>
+      <td class="td-muted">${fmtDate(c.jobDate)}</td><td class="td-muted">${fmtDate(c.followUpDate)}</td>
+      <td>${statusBadge(c.status)}</td><td>${paidCell}</td><td class="td-muted">${escHtml(c.leadSource||'')}</td>
+      <td class="td-wrap td-muted">${escHtml(c.notes||'')}</td>
+      <td><div class="del-confirm"><span class="del-label">Delete?</span><button class="btn btn-destructive btn-xs" onclick="confirmDelete('${c.id}','customer')">✓</button><button class="btn btn-outline btn-xs" onclick="cancelDelete()">✕</button></div></td>
+    </tr>`;
+
+    const svcDisplay = svcBadges || '<span class="td-muted" style="font-style:italic;font-size:12px">click to set</span>';
+    return `<tr>
+      <td class="editable-cell" onclick="editCell(event,'${c.id}','name')"><strong>${escHtml(c.name)}</strong></td>
+      <td class="editable-cell" onclick="editCell(event,'${c.id}','phone')">${phone}${phoneBtns}</td>
+      <td class="editable-cell td-wrap" onclick="editCell(event,'${c.id}','address')">${escHtml(c.address||'') || '<span class="td-muted" style="font-style:italic;font-size:12px">—</span>'}</td>
+      <td class="editable-cell" onclick="editCell(event,'${c.id}','serviceTypes')"><div class="badge-list">${svcDisplay}</div></td>
+      <td class="editable-cell r td-muted" onclick="editCell(event,'${c.id}','quotePrice')">${c.quotePrice>0?fmt(c.quotePrice):'—'}</td>
+      <td class="editable-cell r td-green" onclick="editCell(event,'${c.id}','finalPrice')">${c.finalPrice>0?fmt(c.finalPrice):'—'}</td>
+      <td class="editable-cell r td-red" onclick="editCell(event,'${c.id}','expenses')">${c.expenses>0?fmt(c.expenses):'—'}</td>
+      <td class="r ${profit>=0?'td-green':'td-red'}">${(+c.finalPrice>0||+c.expenses>0)?fmt(profit):'—'}</td>
+      <td class="editable-cell td-muted" onclick="editCell(event,'${c.id}','jobDate')">${fmtDate(c.jobDate)}</td>
+      <td class="editable-cell td-muted" onclick="editCell(event,'${c.id}','followUpDate')">${fmtDate(c.followUpDate)}</td>
+      <td class="editable-cell" onclick="editCell(event,'${c.id}','status')">${statusBadge(c.status)}</td>
+      <td class="editable-cell" onclick="editCell(event,'${c.id}','paid')" title="Click to toggle">${paidCell}</td>
+      <td class="editable-cell td-muted" onclick="editCell(event,'${c.id}','leadSource')">${escHtml(c.leadSource||'') || '—'}</td>
+      <td class="editable-cell td-wrap td-muted" onclick="editCell(event,'${c.id}','notes')">${escHtml(c.notes||'') || '—'}</td>
+      <td><button class="btn btn-ghost icon-btn danger" onclick="askDelete('${c.id}')" title="Delete">🗑</button></td>
+    </tr>`;
+  }).join('');
+}
+
+// ── Delete ─────────────────────────────────────────────────────────────────────
+function askDelete(id)       { deleteConfirm=id; renderCustomers(); renderIncome(); renderExpenses(); renderInvoices(); }
+function cancelDelete()      { deleteConfirm=null; render(); }
+function confirmDelete(id, type) {
+  if(type==='income')    data.income    = data.income.filter(e=>e.id!==id);
+  if(type==='expense')   data.expenses  = data.expenses.filter(e=>e.id!==id);
+  if(type==='customer')  data.customers = data.customers.filter(c=>c.id!==id);
+  if(type==='seoWeek')    data.seoWeekly      = data.seoWeekly.filter(e=>e.id!==id);
+  if(type==='seoPage')    data.seoPages       = data.seoPages.filter(p=>p.id!==id);
+  if(type==='competitor') data.seoCompetitors = data.seoCompetitors.filter(c=>c.id!==id);
+  if(type==='keyword')    data.seoKeywords    = data.seoKeywords.filter(k=>k.id!==id);
+  if(type==='win')        data.seoWins        = data.seoWins.filter(w=>w.id!==id);
+  if(type==='goal')       data.seoGoals       = data.seoGoals.filter(g=>g.id!==id);
+  if(type==='lead')       data.leads          = data.leads.filter(l=>l.id!==id);
+  if(type==='invoice')    data.invoices       = data.invoices.filter(i=>i.id!==id);
+  deleteConfirm=null; saveData(); render();
+}
+
+// ── Income modal ───────────────────────────────────────────────────────────────
+function openIncomeModal(id) {
+  editingIncomeId=id;
+  const e=id?data.income.find(x=>x.id===id):null;
+  el('income-modal-title').textContent=e?'Edit Income Entry':'Add Income';
+  el('i-date').value=e?e.date:todayStr();
+  el('i-amount').value=e?e.amount:'';
+  el('i-customer').value=e?e.customerName:'';
+  setChecked('i-services',e?e.serviceTypes:[]);
+  el('i-notes').value=e?e.notes:'';
+  el('i-error').style.display='none';
+  el('income-modal').classList.add('open');
+  setTimeout(()=>el('i-customer').focus(),80);
+}
+function submitIncome() {
+  const date=el('i-date').value,amount=el('i-amount').value,
+        customer=el('i-customer').value.trim(),serviceTypes=getChecked('i-services'),notes=el('i-notes').value.trim();
+  if(!date||!amount||!customer||serviceTypes.length===0){showErr('i-error','Please fill in all required fields.');return;}
+  const amt=parseFloat(amount);
+  if(isNaN(amt)||amt<=0){showErr('i-error','Amount must be greater than zero.');return;}
+  const entry={id:editingIncomeId||uid(),date,customerName:customer,serviceTypes,amount:Math.round(amt*100)/100,notes};
+  if(editingIncomeId) data.income=data.income.map(e=>e.id===editingIncomeId?entry:e);
+  else data.income.push(entry);
+  saveData(); closeModal('income-modal'); render();
+}
+
+// ── Expense modal ──────────────────────────────────────────────────────────────
+function openExpenseModal(id) {
+  editingExpenseId=id;
+  const e=id?data.expenses.find(x=>x.id===id):null;
+  el('expense-modal-title').textContent=e?'Edit Expense Entry':'Add Expense';
+  el('e-date').value=e?e.date:todayStr();
+  el('e-amount').value=e?e.amount:'';
+  setChecked('e-categories',e?e.categories:[]);
+  el('e-desc').value=e?e.description:'';
+  el('e-error').style.display='none';
+  el('expense-modal').classList.add('open');
+  setTimeout(()=>el('e-desc').focus(),80);
+}
+function submitExpense() {
+  const date=el('e-date').value,amount=el('e-amount').value,
+        categories=getChecked('e-categories'),desc=el('e-desc').value.trim();
+  if(!date||!amount||categories.length===0||!desc){showErr('e-error','Please fill in all required fields.');return;}
+  const amt=parseFloat(amount);
+  if(isNaN(amt)||amt<=0){showErr('e-error','Amount must be greater than zero.');return;}
+  const entry={id:editingExpenseId||uid(),date,categories,description:desc,amount:Math.round(amt*100)/100};
+  if(editingExpenseId) data.expenses=data.expenses.map(e=>e.id===editingExpenseId?entry:e);
+  else data.expenses.push(entry);
+  saveData(); closeModal('expense-modal'); render();
+}
+
+// ── Customer modal ─────────────────────────────────────────────────────────────
+function openCustomerModal(id) {
+  editingCustomerId=id;
+  const c=id?data.customers.find(x=>x.id===id):null;
+  el('cust-modal-title').textContent=c?'Edit Customer':'Add Customer';
+  el('c-name').value=c?c.name:'';
+  el('c-phone').value=c?c.phone:'';
+  el('c-address').value=c?c.address:'';
+  setChecked('c-services',c?c.serviceTypes:[]);
+  el('c-quote').value=c&&c.quotePrice?c.quotePrice:'';
+  el('c-final').value=c&&c.finalPrice?c.finalPrice:'';
+  el('c-expenses').value=c&&c.expenses?c.expenses:'';
+  el('c-jobdate').value=c?c.jobDate:'';
+  el('c-followup').value=c?c.followUpDate:'';
+  el('c-status').value=c?c.status:'Lead';
+  el('c-source').value=c?c.leadSource:'';
+  el('c-paid').checked=c?!!c.paid:false;
+  el('c-notes').value=c?c.notes:'';
+  el('c-error').style.display='none';
+  el('customer-modal').classList.add('open');
+  setTimeout(()=>el('c-name').focus(),80);
+}
+function submitCustomer() {
+  const name=el('c-name').value.trim();
+  if(!name){showErr('c-error','Customer name is required.');return;}
+  const entry={
+    id:editingCustomerId||uid(),
+    name,
+    phone:el('c-phone').value.trim(),
+    address:el('c-address').value.trim(),
+    serviceTypes:getChecked('c-services'),
+    quotePrice:parsePrice(el('c-quote').value),
+    finalPrice:parsePrice(el('c-final').value),
+    expenses:parsePrice(el('c-expenses').value),
+    jobDate:el('c-jobdate').value,
+    followUpDate:el('c-followup').value,
+    status:el('c-status').value,
+    leadSource:el('c-source').value,
+    paid:el('c-paid').checked,
+    notes:el('c-notes').value.trim()
+  };
+  if(editingCustomerId) data.customers=data.customers.map(c=>c.id===editingCustomerId?entry:c);
+  else data.customers.push(entry);
+  saveData(); closeModal('customer-modal'); render();
+}
+function parsePrice(v) { const n=parseFloat((v||'').toString().replace(/[$,]/g,'')); return isNaN(n)?0:Math.round(n*100)/100; }
+
+// ── CSV Import ─────────────────────────────────────────────────────────────────
+function openImportModal() {
+  csvHeaders=[]; csvRows=[];
+  el('drop-zone').classList.remove('dragover');
+  el('import-mapper').style.display='none';
+  el('import-btn').style.display='none';
+  el('import-error').style.display='none';
+  el('csv-file-input').value='';
+  el('import-modal').classList.add('open');
+}
+
+function handleDrop(e) {
+  e.preventDefault();
+  el('drop-zone').classList.remove('dragover');
+  const file=e.dataTransfer.files[0];
+  if(file) processCSVFile(file);
+}
+function handleFileSelect(e) {
+  const file=e.target.files[0];
+  if(file) processCSVFile(file);
+}
+function processCSVFile(file) {
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    try {
+      const parsed=parseCSV(ev.target.result);
+      csvHeaders=parsed.headers;
+      csvRows=parsed.rows;
+      buildMapper();
+      el('import-file-info').textContent=`📄 ${file.name} — ${csvRows.length} data rows, ${csvHeaders.length} columns`;
+      el('import-mapper').style.display='';
+      el('import-btn').style.display='';
+      el('import-btn').textContent=`Import ${csvRows.length} customer${csvRows.length===1?'':'s'}`;
+      el('import-error').style.display='none';
+    } catch(err) { showErr('import-error','Could not parse CSV: '+err.message); }
+  };
+  reader.readAsText(file);
+}
+
+function parseCSV(text) {
+  const lines=text.split(/\r?\n/).filter(l=>l.trim());
+  if(lines.length<2) throw new Error('File appears empty or has only one row.');
+  const headers=splitCSVRow(lines[0]);
+  const rows=lines.slice(1).map(l=>splitCSVRow(l)).filter(r=>r.some(c=>c.trim()));
+  return {headers,rows};
+}
+function splitCSVRow(row) {
+  const cells=[]; let cur='', inQ=false;
+  for(let i=0;i<row.length;i++){
+    const ch=row[i];
+    if(ch==='"'&&!inQ){inQ=true;}
+    else if(ch==='"'&&inQ&&row[i+1]==='"'){cur+='"';i++;}
+    else if(ch==='"'&&inQ){inQ=false;}
+    else if(ch===','&&!inQ){cells.push(cur);cur='';}
+    else cur+=ch;
+  }
+  cells.push(cur);
+  return cells.map(c=>c.trim());
+}
+
+const FIELD_DEFS = [
+  {key:'name',       label:'Name *',         keywords:['name','customer','client','full']},
+  {key:'phone',      label:'Phone',           keywords:['phone','tel','mobile','cell','contact']},
+  {key:'address',    label:'Address',         keywords:['address','addr','location','street','city']},
+  {key:'service',    label:'Service Type',    keywords:['service','type','job type','work','job']},
+  {key:'quotePrice', label:'Quote Price',     keywords:['quote','estimate','bid','quoted']},
+  {key:'finalPrice', label:'Final Price',     keywords:['final','amount','total','charged','invoice','price','revenue','paid amount']},
+  {key:'jobDate',    label:'Job Date',        keywords:['date','job date','scheduled','completed','appointment']},
+  {key:'status',     label:'Status',          keywords:['status','stage','progress']},
+  {key:'paid',       label:'Paid',            keywords:['paid','payment','invoice paid']},
+  {key:'notes',      label:'Notes',           keywords:['note','comment','description','memo']},
+  {key:'followUpDate',label:'Follow Up Date', keywords:['follow','followup','follow-up','next','callback','fu']},
+  {key:'leadSource', label:'Lead Source',     keywords:['source','lead source','referral','how','channel','where']},
+  {key:'expenses',   label:'Job Expenses',    keywords:['expense','cost','supplies','material','overhead']},
+];
+
+function bestMatch(keywords) {
+  const lower=csvHeaders.map(h=>h.toLowerCase().trim());
+  for(const kw of keywords){
+    const idx=lower.findIndex(h=>h.includes(kw)||kw.includes(h));
+    if(idx>=0) return csvHeaders[idx];
+  }
+  return '';
+}
+
+function buildMapper() {
+  const grid=el('mapper-grid');
+  grid.innerHTML='';
+  FIELD_DEFS.forEach(f=>{
+    const matched=bestMatch(f.keywords);
+    const lbl=document.createElement('div');
+    lbl.className='field-label'; lbl.textContent=f.label;
+    const sel=document.createElement('select');
+    sel.id='map-'+f.key;
+    sel.innerHTML='<option value="">(not mapped)</option>'+csvHeaders.map(h=>`<option value="${escHtml(h)}"${h===matched?'selected':''}>${escHtml(h)}</option>`).join('');
+    grid.appendChild(lbl); grid.appendChild(sel);
+  });
+  // Preview
+  const prev=csvRows.slice(0,2).map(r=>r.join(' | ')).join('\n');
+  el('import-preview').textContent=prev;
+}
+
+function getMapVal(key) { return (el('map-'+key)||{}).value||''; }
+function colVal(row, colName) {
+  if(!colName) return '';
+  const idx=csvHeaders.indexOf(colName);
+  return idx>=0?(row[idx]||'').trim():'';
+}
+
+function normalizeStatus(s) {
+  if(!s) return 'Lead';
+  const v=s.toLowerCase().trim();
+  if(['completed','done','finished','complete','closed'].includes(v)) return 'Completed';
+  if(['quoted','quote sent','estimate','proposal'].includes(v)) return 'Quoted';
+  if(['scheduled','booked','confirmed','pending','appt'].includes(v)) return 'Scheduled';
+  if(['cancelled','canceled','lost','declined','no show','dead'].includes(v)) return 'Cancelled';
+  return 'Lead';
+}
+function normalizePaid(s) {
+  if(!s) return false;
+  return ['yes','true','1','paid','y','✓','x'].includes(s.toLowerCase().trim());
+}
+function normalizeDate(s) {
+  if(!s) return '';
+  // try M/D/YYYY or M-D-YYYY → YYYY-MM-DD
+  const md=s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
+  if(md) {
+    const y=md[3].length===2?'20'+md[3]:md[3];
+    return y+'-'+String(md[1]).padStart(2,'0')+'-'+String(md[2]).padStart(2,'0');
+  }
+  // already YYYY-MM-DD
+  if(/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  return '';
+}
+
+function runImport() {
+  const nameCol=getMapVal('name');
+  if(!nameCol){showErr('import-error','Please map the Name column.');return;}
+  const imported=[];
+  csvRows.forEach(row=>{
+    const name=colVal(row,nameCol).trim();
+    if(!name) return;
+    const svcRaw=colVal(row,getMapVal('service'));
+    const serviceTypes=svcRaw?[svcRaw]:[];
+    imported.push({
+      id:uid(),
+      name,
+      phone:colVal(row,getMapVal('phone')),
+      address:colVal(row,getMapVal('address')),
+      serviceTypes,
+      quotePrice:parsePrice(colVal(row,getMapVal('quotePrice'))),
+      finalPrice:parsePrice(colVal(row,getMapVal('finalPrice'))),
+      expenses:parsePrice(colVal(row,getMapVal('expenses'))),
+      jobDate:normalizeDate(colVal(row,getMapVal('jobDate'))),
+      followUpDate:normalizeDate(colVal(row,getMapVal('followUpDate'))),
+      status:normalizeStatus(colVal(row,getMapVal('status'))),
+      paid:normalizePaid(colVal(row,getMapVal('paid'))),
+      leadSource:colVal(row,getMapVal('leadSource')),
+      notes:colVal(row,getMapVal('notes')),
+    });
+  });
+  data.customers=[...data.customers,...imported];
+  saveData();
+  closeModal('import-modal');
+  switchTab('customers');
+  render();
+}
+
+// ── CSV Export ─────────────────────────────────────────────────────────────────
+function exportCSV() {
+  const inc=monthIncome(), exp=monthExpenses();
+  const custs=custForMonth(curYear,curMonth);
+  const rev=sumAmt(inc), expTot=sumAmt(exp);
+  const cusRev=custRevenue(custs), cusExp=custExpenses(custs);
+  const mn=MONTHS[curMonth-1];
+  const lines=[];
+  lines.push(`"Rose Power Washing — P&L Report: ${mn} ${curYear}"`,'');
+  lines.push('CUSTOMER JOBS');
+  lines.push('Name,Phone,Address,Service,Quote,Final Price,Job Expenses,Profit,Job Date,Status,Paid,Lead Source,Notes');
+  custs.forEach(c=>lines.push(`"${esc(c.name)}","${esc(c.phone)}","${esc(c.address)}","${esc((c.serviceTypes||[]).join(' + '))}",${(+c.quotePrice||0).toFixed(2)},${(+c.finalPrice||0).toFixed(2)},${(+c.expenses||0).toFixed(2)},${((+c.finalPrice||0)-(+c.expenses||0)).toFixed(2)},"${esc(c.jobDate)}","${esc(c.status)}","${c.paid?'Yes':'No'}","${esc(c.leadSource)}","${esc(c.notes)}"`));
+  lines.push(`,,,,,,Total,${cusRev.toFixed(2)}`,'');
+  lines.push('MANUAL INCOME');
+  lines.push('Date,Customer,Service,Amount,Notes');
+  inc.forEach(e=>lines.push(`${e.date},"${esc(e.customerName)}","${esc((e.serviceTypes||[]).join(' + '))}",${e.amount.toFixed(2)},"${esc(e.notes)}"`));
+  lines.push(`,,,${rev.toFixed(2)}`,'');
+  lines.push('MANUAL EXPENSES');
+  lines.push('Date,Category,Description,Amount');
+  exp.forEach(e=>lines.push(`${e.date},"${esc((e.categories||[]).join(' + '))}","${esc(e.description)}",${e.amount.toFixed(2)}`));
+  lines.push(`,,${expTot.toFixed(2)}`,'');
+  lines.push('SUMMARY');
+  lines.push(`Customer Revenue,${cusRev.toFixed(2)}`);
+  lines.push(`Customer Expenses,${cusExp.toFixed(2)}`);
+  lines.push(`Manual Revenue,${rev.toFixed(2)}`);
+  lines.push(`Manual Expenses,${expTot.toFixed(2)}`);
+  lines.push(`Combined Revenue,${(cusRev+rev).toFixed(2)}`);
+  lines.push(`Combined Expenses,${(cusExp+expTot).toFixed(2)}`);
+  lines.push(`Net Profit,${(cusRev+rev-cusExp-expTot).toFixed(2)}`);
+  const blob=new Blob([lines.join('\n')],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download=`PL-${mn}-${curYear}.csv`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+}
+
+// ── Modal helpers ──────────────────────────────────────────────────────────────
+function closeModal(id) { el(id).classList.remove('open'); }
+function showErr(id,msg) { const e=el(id); e.textContent=msg; e.style.display=''; }
+
+document.querySelectorAll('.modal-overlay').forEach(o=>{
+  o.addEventListener('click',e=>{ if(e.target===o && o.id!=='import-modal') o.classList.remove('open'); });
+});
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') document.querySelectorAll('.modal-overlay.open').forEach(m=>m.classList.remove('open')); });
+
+// ── Checkbox helpers ───────────────────────────────────────────────────────────
+function getChecked(cid) { return Array.from(document.querySelectorAll('#'+cid+' input[type="checkbox"]:checked')).map(c=>c.value); }
+function setChecked(cid,vals) { document.querySelectorAll('#'+cid+' input[type="checkbox"]').forEach(c=>{ c.checked=(vals||[]).includes(c.value); }); }
+
+// ── Default SEO pages ──────────────────────────────────────────────────────────
+function defaultSeoPages() {
+  const b = 'https://rosepowerwashingtx.com';
+  return [
+    { id:uid(), url:b+'/',                                           keyword:'pressure washing Cypress TX',                 position:null, lastChecked:'', indexed:true, notes:'' },
+    { id:uid(), url:b+'/pressure-washing-cypress-tx',               keyword:'pressure washing Cypress TX',                 position:null, lastChecked:'', indexed:true, notes:'' },
+    { id:uid(), url:b+'/driveway-cleaning',                         keyword:'driveway cleaning Cypress TX',                position:null, lastChecked:'', indexed:true, notes:'' },
+    { id:uid(), url:b+'/house-washing',                             keyword:'house washing Cypress TX',                    position:null, lastChecked:'', indexed:true, notes:'' },
+    { id:uid(), url:b+'/roof-cleaning',                             keyword:'roof cleaning Cypress TX',                    position:null, lastChecked:'', indexed:true, notes:'' },
+    { id:uid(), url:b+'/commercial-pressure-washing',               keyword:'commercial pressure washing Cypress TX',      position:null, lastChecked:'', indexed:true, notes:'' },
+    { id:uid(), url:b+'/fence-cleaning-cypress-tx',                 keyword:'fence cleaning Cypress TX',                   position:null, lastChecked:'', indexed:true, notes:'' },
+    { id:uid(), url:b+'/pressure-washing-near-me',                  keyword:'pressure washing near me',                    position:null, lastChecked:'', indexed:true, notes:'' },
+    { id:uid(), url:b+'/pressure-washing-pricing-cypress-tx',       keyword:'pressure washing prices Cypress TX',          position:null, lastChecked:'', indexed:true, notes:'' },
+    { id:uid(), url:b+'/faq',                                       keyword:'pressure washing FAQ Cypress TX',             position:null, lastChecked:'', indexed:true, notes:'' },
+    { id:uid(), url:b+'/soft-washing-vs-pressure-washing',          keyword:'soft washing vs pressure washing',            position:null, lastChecked:'', indexed:true, notes:'' },
+    { id:uid(), url:b+'/power-washing-cypress-tx',                  keyword:'power washing Cypress TX',                    position:null, lastChecked:'', indexed:true, notes:'' },
+    { id:uid(), url:b+'/how-often-pressure-wash-home-cypress-tx',   keyword:'how often pressure wash home Cypress TX',     position:null, lastChecked:'', indexed:true, notes:'' },
+    { id:uid(), url:b+'/pressure-washing-katy-tx',                  keyword:'pressure washing Katy TX',                    position:null, lastChecked:'', indexed:true, notes:'' },
+    { id:uid(), url:b+'/pressure-washing-hockley-tx',               keyword:'pressure washing Hockley TX',                 position:null, lastChecked:'', indexed:true, notes:'' },
+    { id:uid(), url:b+'/pressure-washing-jersey-village-tx',        keyword:'pressure washing Jersey Village TX',          position:null, lastChecked:'', indexed:true, notes:'' },
+    { id:uid(), url:b+'/pressure-washing-spring-tx',                keyword:'pressure washing Spring TX',                  position:null, lastChecked:'', indexed:true, notes:'' },
+    { id:uid(), url:b+'/pressure-washing-the-woodlands-tx',         keyword:'pressure washing The Woodlands TX',           position:null, lastChecked:'', indexed:true, notes:'' },
+    { id:uid(), url:b+'/pressure-washing-tomball-tx',               keyword:'pressure washing Tomball TX',                 position:null, lastChecked:'', indexed:true, notes:'' },
+    { id:uid(), url:b+'/pressure-washing-waller-tx',                keyword:'pressure washing Waller TX',                  position:null, lastChecked:'', indexed:true, notes:'' },
+    { id:uid(), url:b+'/agent-village',                             keyword:'pressure washing Agent Village TX',           position:null, lastChecked:'', indexed:true, notes:'' },
+  ];
+}
+
+// ── SEO helpers ────────────────────────────────────────────────────────────────
+function numOrNull(v) { if(v===''||v==null) return null; const n=parseFloat(v); return isNaN(n)?null:n; }
+
+function fmtWeek(iso) {
+  if(!iso) return '—';
+  const [y,m,d] = iso.split('-');
+  const date = new Date(+y, +m-1, +d);
+  return date.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+}
+
+function rankBadge(pos) {
+  if(pos==null||pos===''||+pos===0) return '<span class="td-muted">—</span>';
+  const n=+pos;
+  if(n<=3)  return `<span class="badge rank-top">#${n}</span>`;
+  if(n<=10) return `<span class="badge rank-page1">#${n}</span>`;
+  if(n<=20) return `<span class="badge rank-page2">#${n}</span>`;
+  return `<span class="badge rank-beyond">#${n}</span>`;
+}
+
+function trend(curr, prev) {
+  if(prev==null||curr==null||prev===0) return '';
+  const pct=Math.round(((curr-prev)/prev)*100);
+  if(pct>0)  return `<span class="trend-up">▲${pct}%</span>`;
+  if(pct<0)  return `<span class="trend-down">▼${Math.abs(pct)}%</span>`;
+  return `<span class="trend-flat">→</span>`;
+}
+
+// ── Render SEO ─────────────────────────────────────────────────────────────────
+function renderSEO() {
+  // Badge: Page 1 keyword count
+  const p1count = data.seoKeywords.filter(k=>k.status==='Page 1').length;
+  const wb=el('seo-badge');
+  wb.textContent=p1count; wb.style.display=p1count>0?'':'none';
+
+  // Latest week summary cards
+  const weeks=[...data.seoWeekly].sort((a,b)=>b.week.localeCompare(a.week));
+  if(weeks.length>0){
+    el('seo-latest-cards').style.display='';
+    const lw=weeks[0];
+    el('seo-lc-clicks').textContent = lw.clicks!=null      ? (+lw.clicks).toLocaleString()       : '—';
+    el('seo-lc-impr').textContent   = lw.impressions!=null ? (+lw.impressions).toLocaleString()  : '—';
+    el('seo-lc-ctr').textContent    = lw.ctr!=null         ? (+lw.ctr).toFixed(2)+'%'            : '—';
+    el('seo-lc-pos').textContent    = lw.avgPosition!=null ? (+lw.avgPosition).toFixed(1)        : '—';
+    el('seo-lc-gb').textContent     = lw.gbViews!=null     ? (+lw.gbViews).toLocaleString()      : '—';
+    el('seo-lc-calls').textContent  = lw.calls!=null       ? lw.calls                            : '—';
+  } else { el('seo-latest-cards').style.display='none'; }
+
+  // Weekly stats table
+  if(weeks.length===0){ el('seo-week-empty').style.display=''; el('seo-week-table-wrap').style.display='none'; }
+  else {
+    el('seo-week-empty').style.display='none'; el('seo-week-table-wrap').style.display='';
+    el('seo-week-tbody').innerHTML = weeks.map((w,i)=>{
+      const prev=weeks[i+1], dc=deleteConfirm===w.id;
+      if(dc) return `<tr>
+        <td class="td-muted">${fmtDate(w.week)}</td>
+        <td class="r">${w.clicks??'—'}</td><td class="r">${w.impressions??'—'}</td>
+        <td class="r">${w.ctr!=null?w.ctr+'%':'—'}</td><td class="r">${w.avgPosition??'—'}</td>
+        <td class="r">${w.gbViews??'—'}</td><td class="r">${w.calls??'—'}</td>
+        <td class="r">${w.directionRequests??'—'}</td>
+        <td class="td-wrap td-muted">${escHtml(w.notes||'')}</td>
+        <td><div class="del-confirm"><span class="del-label">Delete?</span>
+          <button class="btn btn-destructive btn-xs" onclick="confirmDelete('${w.id}','seoWeek')">✓</button>
+          <button class="btn btn-outline btn-xs" onclick="cancelDelete()">✕</button></div></td></tr>`;
+      const ct=trend(w.clicks,prev&&prev.clicks), it=trend(w.impressions,prev&&prev.impressions);
+      return `<tr>
+        <td class="td-muted"><strong>${fmtWeek(w.week)}</strong></td>
+        <td class="r">${w.clicks!=null?(+w.clicks).toLocaleString():'—'}${ct}</td>
+        <td class="r">${w.impressions!=null?(+w.impressions).toLocaleString():'—'}${it}</td>
+        <td class="r">${w.ctr!=null?(+w.ctr).toFixed(2)+'%':'—'}</td>
+        <td class="r">${w.avgPosition!=null?(+w.avgPosition).toFixed(1):'—'}</td>
+        <td class="r">${w.gbViews!=null?(+w.gbViews).toLocaleString():'—'}</td>
+        <td class="r">${w.calls!=null?w.calls:'—'}</td>
+        <td class="r">${w.directionRequests!=null?w.directionRequests:'—'}</td>
+        <td class="td-wrap td-muted" style="font-size:12px">${escHtml(w.notes||'')||'—'}</td>
+        <td style="white-space:nowrap">
+          <button class="btn btn-ghost icon-btn" onclick="openSeoWeekModal('${w.id}')" title="Edit">✎</button>
+          <button class="btn btn-ghost icon-btn danger" onclick="askDelete('${w.id}')" title="Delete">🗑</button>
+        </td></tr>`;
+    }).join('');
+  }
+
+  renderKeywords();
+  renderCompetitors();
+
+  // Page rankings
+  const pages=[...data.seoPages].sort((a,b)=>(a.position?+a.position:9999)-(b.position?+b.position:9999));
+  const tracked=pages.filter(p=>p.position!=null&&p.position!=='').length;
+  el('seo-page-sub').textContent=`${pages.length} pages · ${tracked} with tracked positions`;
+  el('seo-page-tbody').innerHTML = pages.map(p=>{
+    const dc=deleteConfirm===p.id;
+    const idx=p.indexed?'<span style="color:var(--green);font-weight:700;font-size:16px">✓</span>':'<span style="color:var(--red);font-size:16px">✗</span>';
+    const shortUrl=escHtml(p.url.replace('https://rosepowerwashingtx.com','')||'/');
+    if(dc) return `<tr>
+      <td style="font-size:12px">${escHtml(p.url)}</td><td>${escHtml(p.keyword||'')}</td>
+      <td class="r">${rankBadge(p.position)}</td><td class="td-muted">${fmtDate(p.lastChecked)}</td>
+      <td>${idx}</td><td class="td-wrap td-muted">${escHtml(p.notes||'')}</td>
+      <td><div class="del-confirm"><span class="del-label">Delete?</span>
+        <button class="btn btn-destructive btn-xs" onclick="confirmDelete('${p.id}','seoPage')">✓</button>
+        <button class="btn btn-outline btn-xs" onclick="cancelDelete()">✕</button></div></td></tr>`;
+    return `<tr>
+      <td><a class="seo-url-link" href="${escHtml(p.url)}" target="_blank" rel="noopener">${shortUrl}</a></td>
+      <td style="font-size:13px">${escHtml(p.keyword||'')||'<span class="td-muted">—</span>'}</td>
+      <td class="r">${rankBadge(p.position)}</td>
+      <td class="td-muted">${fmtDate(p.lastChecked)||'—'}</td>
+      <td>${idx}</td>
+      <td class="td-wrap td-muted" style="font-size:12px">${escHtml(p.notes||'')||'—'}</td>
+      <td style="white-space:nowrap">
+        <button class="btn btn-ghost icon-btn" onclick="openSeoPageModal('${p.id}')" title="Edit">✎</button>
+        <button class="btn btn-ghost icon-btn danger" onclick="askDelete('${p.id}')" title="Delete">🗑</button>
+      </td></tr>`;
+  }).join('');
+
+  renderWins();
+  renderGoals();
+}
+
+// ── Keywords ───────────────────────────────────────────────────────────────────
+function renderKeywords() {
+  const kws = data.seoKeywords;
+  const p1 = kws.filter(k=>k.status==='Page 1').length;
+  el('kw-meta').textContent = `${kws.length} keyword${kws.length===1?'':'s'} · ${p1} on page 1`;
+  if(kws.length===0){ el('kw-empty').style.display=''; el('kw-table-wrap').style.display='none'; return; }
+  el('kw-empty').style.display='none'; el('kw-table-wrap').style.display='';
+  const KMAP={'Not Ranking':'badge-not-ranking','Improving':'badge-improving','Page 1':'badge-page1-kw'};
+  el('kw-tbody').innerHTML = kws.map(k=>{
+    const dc=deleteConfirm===k.id;
+    const sBadge=`<span class="badge ${KMAP[k.status]||'badge-secondary'}">${escHtml(k.status||'Not Ranking')}</span>`;
+    if(dc) return `<tr>
+      <td>${escHtml(k.keyword)}</td>
+      <td class="r td-muted">${k.searchVolume!=null?(+k.searchVolume).toLocaleString():'—'}</td>
+      <td class="r">${rankBadge(k.currentPosition)}</td>
+      <td class="r td-muted">${k.targetPosition?'#'+k.targetPosition:'—'}</td>
+      <td class="td-muted" style="font-size:12px">${escHtml(k.pageName||'')}</td>
+      <td>${sBadge}</td>
+      <td><div class="del-confirm"><span class="del-label">Delete?</span>
+        <button class="btn btn-destructive btn-xs" onclick="confirmDelete('${k.id}','keyword')">✓</button>
+        <button class="btn btn-outline btn-xs" onclick="cancelDelete()">✕</button></div></td></tr>`;
+    const gap = (k.currentPosition&&k.targetPosition&&+k.currentPosition>+k.targetPosition)
+      ? `<span class="td-muted" style="font-size:11px">(${+k.currentPosition-+k.targetPosition} to go)</span>` : '';
+    const pageLink = k.pageName
+      ? `<a class="seo-url-link" href="https://rosepowerwashingtx.com${k.pageName.startsWith('/')?'':'/'}${escHtml(k.pageName)}" target="_blank" rel="noopener">${escHtml(k.pageName)}</a>`
+      : '<span class="td-muted">—</span>';
+    return `<tr>
+      <td><strong>${escHtml(k.keyword)}</strong></td>
+      <td class="r td-muted">${k.searchVolume!=null?(+k.searchVolume).toLocaleString():'—'}</td>
+      <td class="r">${rankBadge(k.currentPosition)}</td>
+      <td class="r td-muted">${k.targetPosition?'#'+k.targetPosition:'—'} ${gap}</td>
+      <td style="font-size:12px">${pageLink}</td>
+      <td>${sBadge}</td>
+      <td style="white-space:nowrap">
+        <button class="btn btn-ghost icon-btn" onclick="openKeywordModal('${k.id}')" title="Edit">✎</button>
+        <button class="btn btn-ghost icon-btn danger" onclick="askDelete('${k.id}')" title="Delete">🗑</button>
+      </td></tr>`;
+  }).join('');
+}
+
+// ── Competitors ────────────────────────────────────────────────────────────────
+function renderCompetitors() {
+  const comps = data.seoCompetitors;
+  const beating = comps.filter(c=>c.status==='Beating').length;
+  el('comp-meta').textContent = `${comps.length} tracked · ${beating} beating`;
+  if(comps.length===0){ el('comp-empty').style.display=''; el('comp-table-wrap').style.display='none'; return; }
+  el('comp-empty').style.display='none'; el('comp-table-wrap').style.display='';
+  el('comp-tbody').innerHTML = comps.map(c=>{
+    const dc=deleteConfirm===c.id;
+    const sBadge=c.status==='Beating'
+      ?'<span class="badge badge-beating">✓ Beating</span>'
+      :'<span class="badge badge-not-yet">Not Yet</span>';
+    if(dc) return `<tr>
+      <td>${escHtml(c.url)}</td>
+      <td class="r">${rankBadge(c.ranking)}</td>
+      <td class="td-wrap td-muted">${escHtml(c.notes||'')}</td>
+      <td>${sBadge}</td>
+      <td><div class="del-confirm"><span class="del-label">Delete?</span>
+        <button class="btn btn-destructive btn-xs" onclick="confirmDelete('${c.id}','competitor')">✓</button>
+        <button class="btn btn-outline btn-xs" onclick="cancelDelete()">✕</button></div></td></tr>`;
+    return `<tr>
+      <td><a class="seo-url-link" href="${escHtml(c.url)}" target="_blank" rel="noopener">${escHtml(c.url)}</a></td>
+      <td class="r">${rankBadge(c.ranking)}</td>
+      <td class="td-wrap td-muted" style="font-size:13px">${escHtml(c.notes||'')||'—'}</td>
+      <td>${sBadge}</td>
+      <td style="white-space:nowrap">
+        <button class="btn btn-ghost icon-btn" onclick="openCompetitorModal('${c.id}')" title="Edit">✎</button>
+        <button class="btn btn-ghost icon-btn danger" onclick="askDelete('${c.id}')" title="Delete">🗑</button>
+      </td></tr>`;
+  }).join('');
+}
+
+// ── Wins Timeline ──────────────────────────────────────────────────────────────
+function renderWins() {
+  const wins=[...data.seoWins].sort((a,b)=>b.date.localeCompare(a.date));
+  el('wins-meta').textContent=`${wins.length} win${wins.length===1?'':'s'} logged`;
+  if(wins.length===0){ el('wins-empty').style.display=''; el('wins-timeline').innerHTML=''; return; }
+  el('wins-empty').style.display='none';
+  el('wins-timeline').innerHTML=`<div class="timeline">${
+    wins.map(w=>{
+      const dc=deleteConfirm===w.id;
+      const actions=dc
+        ?`<div class="tl-actions del-confirm"><span class="del-label">Delete?</span><button class="btn btn-destructive btn-xs" onclick="confirmDelete('${w.id}','win')">✓</button><button class="btn btn-outline btn-xs" onclick="cancelDelete()">✕</button></div>`
+        :`<div class="tl-actions"><button class="btn btn-ghost icon-btn" onclick="openWinModal('${w.id}')" title="Edit">✎</button><button class="btn btn-ghost icon-btn danger" onclick="askDelete('${w.id}')" title="Delete">🗑</button></div>`;
+      return `<div class="tl-item">
+        <div class="tl-dot"></div>
+        <div class="tl-card">
+          <div class="tl-meta"><div class="tl-date">🏆 ${fmtDate(w.date)}</div>${actions}</div>
+          <div class="tl-title">${escHtml(w.title)}</div>
+          ${w.notes?`<div class="tl-notes">${escHtml(w.notes)}</div>`:''}
+        </div>
+      </div>`;
+    }).join('')
+  }</div>`;
+}
+
+// ── Monthly Goals ──────────────────────────────────────────────────────────────
+function renderGoals() {
+  const goals=[...data.seoGoals].sort((a,b)=>b.month.localeCompare(a.month));
+  const done=goals.filter(g=>g.completed).length;
+  el('goals-meta').textContent=`${goals.length} goal${goals.length===1?'':'s'} · ${done} completed`;
+  if(goals.length===0){ el('goals-empty').style.display=''; el('goals-grid').innerHTML=''; return; }
+  el('goals-empty').style.display='none';
+  el('goals-grid').innerHTML=goals.map(g=>{
+    const pct=g.completed?100:Math.min(100,Math.max(0,+g.progress||0));
+    const isDone=g.completed;
+    const dc=deleteConfirm===g.id;
+    const monthLabel=g.month?fmtMonth(g.month):'—';
+    const btns=dc
+      ?`<div class="del-confirm" style="display:flex;gap:3px;align-items:center"><span class="del-label">Delete?</span><button class="btn btn-destructive btn-xs" onclick="confirmDelete('${g.id}','goal')">✓</button><button class="btn btn-outline btn-xs" onclick="cancelDelete()">✕</button></div>`
+      :`<div style="display:flex;gap:1px"><button class="btn btn-ghost icon-btn" onclick="openGoalModal('${g.id}')" title="Edit" style="width:26px;height:26px;font-size:12px">✎</button><button class="btn btn-ghost icon-btn danger" onclick="askDelete('${g.id}')" title="Delete" style="width:26px;height:26px;font-size:12px">🗑</button></div>`;
+    return `<div class="goal-card ${isDone?'g-done':''}">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:6px">
+        <div class="goal-month">${monthLabel}</div>${btns}
+      </div>
+      <div class="goal-text ${isDone?'done':''}">${escHtml(g.goal)}</div>
+      <div class="prog-wrap">
+        <div class="prog-bar"><div class="prog-fill ${isDone?'done':''}" style="width:${pct}%"></div></div>
+        <div class="prog-pct">${pct}%</div>
+      </div>
+      ${g.notes?`<div style="font-size:12px;color:var(--muted);line-height:1.4">${escHtml(g.notes)}</div>`:''}
+      ${isDone?'<span class="badge badge-completed" style="align-self:flex-start;margin-top:2px">✓ Completed</span>':''}
+    </div>`;
+  }).join('');
+}
+
+function fmtMonth(ym) {
+  if(!ym) return '—';
+  const [y,m]=ym.split('-');
+  return new Date(+y,+m-1,1).toLocaleDateString('en-US',{month:'long',year:'numeric'});
+}
+
+// ── Competitor modal ───────────────────────────────────────────────────────────
+function openCompetitorModal(id) {
+  editingCompetitorId=id;
+  const c=id?data.seoCompetitors.find(x=>x.id===id):null;
+  el('comp-modal-title').textContent=c?'Edit Competitor':'Add Competitor';
+  el('co-url').value     = c?c.url:'';
+  el('co-ranking').value = c&&c.ranking!=null?c.ranking:'';
+  el('co-status').value  = c?c.status||'Not Yet':'Not Yet';
+  el('co-notes').value   = c?c.notes||'':'';
+  el('co-error').style.display='none';
+  el('competitor-modal').classList.add('open');
+  setTimeout(()=>el('co-url').focus(),80);
+}
+function submitCompetitor() {
+  const url=el('co-url').value.trim();
+  if(!url){showErr('co-error','Competitor URL is required.');return;}
+  const entry={id:editingCompetitorId||uid(),url,ranking:numOrNull(el('co-ranking').value),
+    status:el('co-status').value,notes:el('co-notes').value.trim()};
+  if(editingCompetitorId) data.seoCompetitors=data.seoCompetitors.map(c=>c.id===editingCompetitorId?entry:c);
+  else data.seoCompetitors.push(entry);
+  saveData(); closeModal('competitor-modal'); renderCompetitors();
+}
+
+// ── Keyword modal ──────────────────────────────────────────────────────────────
+function openKeywordModal(id) {
+  editingKeywordId=id;
+  const k=id?data.seoKeywords.find(x=>x.id===id):null;
+  el('kw-modal-title').textContent=k?'Edit Keyword':'Add Keyword';
+  el('kw-keyword').value = k?k.keyword:'';
+  el('kw-volume').value  = k&&k.searchVolume!=null?k.searchVolume:'';
+  el('kw-status').value  = k?k.status||'Not Ranking':'Not Ranking';
+  el('kw-current').value = k&&k.currentPosition!=null?k.currentPosition:'';
+  el('kw-target').value  = k&&k.targetPosition!=null?k.targetPosition:'';
+  el('kw-page').value    = k?k.pageName||'':'';
+  el('kw-error').style.display='none';
+  el('keyword-modal').classList.add('open');
+  setTimeout(()=>el('kw-keyword').focus(),80);
+}
+function submitKeyword() {
+  const keyword=el('kw-keyword').value.trim();
+  if(!keyword){showErr('kw-error','Keyword is required.');return;}
+  const entry={id:editingKeywordId||uid(),keyword,
+    searchVolume:numOrNull(el('kw-volume').value),status:el('kw-status').value,
+    currentPosition:numOrNull(el('kw-current').value),targetPosition:numOrNull(el('kw-target').value),
+    pageName:el('kw-page').value.trim()};
+  if(editingKeywordId) data.seoKeywords=data.seoKeywords.map(k=>k.id===editingKeywordId?entry:k);
+  else data.seoKeywords.push(entry);
+  saveData(); closeModal('keyword-modal'); renderKeywords();
+}
+
+// ── Win modal ──────────────────────────────────────────────────────────────────
+function openWinModal(id) {
+  editingWinId=id;
+  const w=id?data.seoWins.find(x=>x.id===id):null;
+  el('win-modal-title').textContent=w?'Edit Win':'Log SEO Win';
+  el('win-date').value  = w?w.date:todayStr();
+  el('win-title').value = w?w.title:'';
+  el('win-notes').value = w?w.notes||'':'';
+  el('win-error').style.display='none';
+  el('win-modal').classList.add('open');
+  setTimeout(()=>el('win-title').focus(),80);
+}
+function submitWin() {
+  const date=el('win-date').value, title=el('win-title').value.trim();
+  if(!date||!title){showErr('win-error','Date and win description are required.');return;}
+  const entry={id:editingWinId||uid(),date,title,notes:el('win-notes').value.trim()};
+  if(editingWinId) data.seoWins=data.seoWins.map(w=>w.id===editingWinId?entry:w);
+  else data.seoWins.push(entry);
+  saveData(); closeModal('win-modal'); renderWins();
+}
+
+// ── Goal modal ─────────────────────────────────────────────────────────────────
+function openGoalModal(id) {
+  editingGoalId=id;
+  const g=id?data.seoGoals.find(x=>x.id===id):null;
+  const now=new Date(); const curYM=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
+  el('goal-modal-title').textContent=g?'Edit Goal':'Add Goal';
+  el('goal-month').value     = g?g.month:curYM;
+  el('goal-progress').value  = g?g.progress||0:0;
+  el('goal-text').value      = g?g.goal:'';
+  el('goal-completed').checked = g?!!g.completed:false;
+  el('goal-notes').value     = g?g.notes||'':'';
+  el('goal-error').style.display='none';
+  el('goal-modal').classList.add('open');
+  setTimeout(()=>el('goal-text').focus(),80);
+}
+function submitGoal() {
+  const month=el('goal-month').value, goal=el('goal-text').value.trim();
+  if(!month||!goal){showErr('goal-error','Month and goal description are required.');return;}
+  const entry={id:editingGoalId||uid(),month,goal,
+    progress:Math.min(100,Math.max(0,+el('goal-progress').value||0)),
+    completed:el('goal-completed').checked,notes:el('goal-notes').value.trim()};
+  if(editingGoalId) data.seoGoals=data.seoGoals.map(g=>g.id===editingGoalId?entry:g);
+  else data.seoGoals.push(entry);
+  saveData(); closeModal('goal-modal'); renderGoals();
+}
+
+// ── Render Leads ───────────────────────────────────────────────────────────────
+function renderLeads() {
+  const q=(el('lead-search').value||'').toLowerCase().trim();
+  const sf=el('lead-filter').value;
+  let leads=[...data.leads].sort((a,b)=>{
+    if(b.dateContacted&&a.dateContacted) return b.dateContacted.localeCompare(a.dateContacted);
+    if(b.dateContacted) return 1; if(a.dateContacted) return -1;
+    return (a.name||'').localeCompare(b.name||'');
+  });
+  if(q)  leads=leads.filter(l=>(l.name+' '+l.phone+' '+(l.notes||'')).toLowerCase().includes(q));
+  if(sf) leads=leads.filter(l=>l.status===sf);
+
+  const lb=el('leads-badge'); lb.textContent=data.leads.length; lb.style.display=data.leads.length>0?'':'none';
+  el('leads-sub').textContent=data.leads.length+' lead'+(data.leads.length===1?'':'s')+(leads.length<data.leads.length?' ('+leads.length+' shown)':'');
+
+  if(data.leads.length===0){ el('lead-empty').style.display=''; el('lead-table-wrap').style.display='none'; return; }
+  el('lead-empty').style.display='none'; el('lead-table-wrap').style.display='';
+
+  const SMAP={New:'badge-lead',Contacted:'badge-quoted',Quoted:'badge-scheduled',Won:'badge-completed',Lost:'badge-cancelled'};
+  el('lead-tbody').innerHTML = leads.map(l=>{
+    const rawPhone=(l.phone||'').replace(/\D/g,'');
+    const phone=escHtml(l.phone||'');
+    const phoneBtns=rawPhone?`<div style="margin-top:4px;display:flex;gap:4px"><a class="btn-call" href="tel:+1${rawPhone}">📞 Call</a><a class="btn-sms" href="sms:+1${rawPhone}">💬 Text</a></div>`:'';
+    const svcBadges=(l.serviceInterested||[]).map(s=>`<span class="badge badge-secondary">${escHtml(s)}</span>`).join(' ');
+    const statusHtml=`<span class="badge ${SMAP[l.status]||'badge-lead'}">${escHtml(l.status||'New')}</span>`;
+    const dc=deleteConfirm===l.id;
+
+    let actionBtns=`<button class="btn btn-ghost icon-btn" onclick="openLeadModal('${l.id}')" title="Edit">✎</button><button class="btn btn-ghost icon-btn danger" onclick="askDelete('${l.id}')" title="Delete">🗑</button>`;
+    if(l.status==='Won'){
+      const convBtn=l.convertedCustomerId
+        ?`<span class="converted-badge">✓ Customer</span>`
+        :`<button class="convert-btn" onclick="convertLeadToCustomer('${l.id}')">→ Customer</button>`;
+      actionBtns=convBtn+' '+actionBtns;
+    }
+
+    if(dc) return `<tr>
+      <td>${escHtml(l.name)}</td><td>${phone}</td>
+      <td class="td-muted">${escHtml(l.leadSource||'')}</td>
+      <td><div class="badge-list">${svcBadges}</div></td>
+      <td class="r">${l.quoteAmount>0?fmt(l.quoteAmount):'—'}</td>
+      <td class="td-muted">${fmtDate(l.dateContacted)}</td>
+      <td class="td-muted">${fmtDate(l.followUpDate)}</td>
+      <td>${statusHtml}</td>
+      <td class="td-wrap td-muted">${escHtml(l.notes||'')}</td>
+      <td><div class="del-confirm"><span class="del-label">Delete?</span>
+        <button class="btn btn-destructive btn-xs" onclick="confirmDelete('${l.id}','lead')">✓</button>
+        <button class="btn btn-outline btn-xs" onclick="cancelDelete()">✕</button></div></td></tr>`;
+    return `<tr>
+      <td><strong>${escHtml(l.name)}</strong></td>
+      <td>${phone}${phoneBtns}</td>
+      <td class="td-muted">${escHtml(l.leadSource||'')||'—'}</td>
+      <td><div class="badge-list">${svcBadges||'<span class="td-muted">—</span>'}</div></td>
+      <td class="r ${l.quoteAmount>0?'td-green':''}">${l.quoteAmount>0?fmt(l.quoteAmount):'—'}</td>
+      <td class="td-muted">${fmtDate(l.dateContacted)||'—'}</td>
+      <td class="td-muted">${fmtDate(l.followUpDate)||'—'}</td>
+      <td>${statusHtml}</td>
+      <td class="td-wrap td-muted" style="font-size:12px">${escHtml(l.notes||'')||'—'}</td>
+      <td style="white-space:nowrap;vertical-align:middle">${actionBtns}</td></tr>`;
+  }).join('');
+}
+
+// ── SEO Weekly modal ───────────────────────────────────────────────────────────
+function openSeoWeekModal(id) {
+  editingSeoWeekId=id;
+  const w=id?data.seoWeekly.find(x=>x.id===id):null;
+  el('seo-week-modal-title').textContent=w?'Edit Week':'Add Weekly Stats';
+  el('sw-week').value       = w?w.week:todayStr();
+  el('sw-clicks').value     = w&&w.clicks!=null?w.clicks:'';
+  el('sw-impr').value       = w&&w.impressions!=null?w.impressions:'';
+  el('sw-ctr').value        = w&&w.ctr!=null?w.ctr:'';
+  el('sw-pos').value        = w&&w.avgPosition!=null?w.avgPosition:'';
+  el('sw-gbviews').value    = w&&w.gbViews!=null?w.gbViews:'';
+  el('sw-calls').value      = w&&w.calls!=null?w.calls:'';
+  el('sw-dirs').value       = w&&w.directionRequests!=null?w.directionRequests:'';
+  el('sw-notes').value      = w?w.notes||'':'';
+  el('sw-error').style.display='none';
+  el('seo-week-modal').classList.add('open');
+  setTimeout(()=>el('sw-week').focus(),80);
+}
+function submitSeoWeek() {
+  const week=el('sw-week').value;
+  if(!week){showErr('sw-error','Week date is required.');return;}
+  const entry={id:editingSeoWeekId||uid(),week,
+    clicks:numOrNull(el('sw-clicks').value),impressions:numOrNull(el('sw-impr').value),
+    ctr:numOrNull(el('sw-ctr').value),avgPosition:numOrNull(el('sw-pos').value),
+    gbViews:numOrNull(el('sw-gbviews').value),calls:numOrNull(el('sw-calls').value),
+    directionRequests:numOrNull(el('sw-dirs').value),notes:el('sw-notes').value.trim()};
+  if(editingSeoWeekId) data.seoWeekly=data.seoWeekly.map(e=>e.id===editingSeoWeekId?entry:e);
+  else data.seoWeekly.push(entry);
+  saveData(); closeModal('seo-week-modal'); renderSEO();
+}
+
+// ── SEO Page modal ─────────────────────────────────────────────────────────────
+function openSeoPageModal(id) {
+  editingSeoPageId=id;
+  const p=id?data.seoPages.find(x=>x.id===id):null;
+  el('seo-page-modal-title').textContent=p?'Edit Page':'Add Page';
+  el('sp-url').value       = p?p.url:'https://rosepowerwashingtx.com/';
+  el('sp-keyword').value   = p?p.keyword||'':'';
+  el('sp-pos').value       = p&&p.position!=null?p.position:'';
+  el('sp-checked').value   = p?p.lastChecked||'':todayStr();
+  el('sp-indexed').checked = p?!!p.indexed:true;
+  el('sp-notes').value     = p?p.notes||'':'';
+  el('sp-error').style.display='none';
+  el('seo-page-modal').classList.add('open');
+  setTimeout(()=>el('sp-url').focus(),80);
+}
+function submitSeoPage() {
+  const url=el('sp-url').value.trim();
+  if(!url){showErr('sp-error','Page URL is required.');return;}
+  const entry={id:editingSeoPageId||uid(),url,keyword:el('sp-keyword').value.trim(),
+    position:numOrNull(el('sp-pos').value),lastChecked:el('sp-checked').value,
+    indexed:el('sp-indexed').checked,notes:el('sp-notes').value.trim()};
+  if(editingSeoPageId) data.seoPages=data.seoPages.map(p=>p.id===editingSeoPageId?entry:p);
+  else data.seoPages.push(entry);
+  saveData(); closeModal('seo-page-modal'); renderSEO();
+}
+
+// ── Lead modal ─────────────────────────────────────────────────────────────────
+function openLeadModal(id) {
+  editingLeadId=id;
+  const l=id?data.leads.find(x=>x.id===id):null;
+  el('lead-modal-title').textContent=l?'Edit Lead':'Add Lead';
+  el('l-name').value      = l?l.name:'';
+  el('l-phone').value     = l?l.phone||'':'';
+  el('l-source').value    = l?l.leadSource||'':'';
+  el('l-status').value    = l?l.status||'New':'New';
+  setChecked('l-services', l?l.serviceInterested||[]:[]);
+  el('l-quote').value     = l&&l.quoteAmount?l.quoteAmount:'';
+  el('l-contacted').value = l?l.dateContacted||'':todayStr();
+  el('l-followup').value  = l?l.followUpDate||'':'';
+  el('l-notes').value     = l?l.notes||'':'';
+  el('l-error').style.display='none';
+  el('lead-modal').classList.add('open');
+  setTimeout(()=>el('l-name').focus(),80);
+}
+function submitLead() {
+  const name=el('l-name').value.trim();
+  if(!name){showErr('l-error','Lead name is required.');return;}
+  const existing=editingLeadId?data.leads.find(x=>x.id===editingLeadId):null;
+  const entry={id:editingLeadId||uid(),name,
+    phone:el('l-phone').value.trim(),leadSource:el('l-source').value,
+    status:el('l-status').value,serviceInterested:getChecked('l-services'),
+    quoteAmount:parsePrice(el('l-quote').value),dateContacted:el('l-contacted').value,
+    followUpDate:el('l-followup').value,notes:el('l-notes').value.trim(),
+    convertedCustomerId:existing?existing.convertedCustomerId:null};
+  if(editingLeadId) data.leads=data.leads.map(l=>l.id===editingLeadId?entry:l);
+  else data.leads.push(entry);
+  saveData(); closeModal('lead-modal'); renderLeads();
+}
+
+// ── Convert lead → customer ────────────────────────────────────────────────────
+function convertLeadToCustomer(id) {
+  const l=data.leads.find(x=>x.id===id);
+  if(!l) return;
+  const cust={id:uid(),name:l.name,phone:l.phone||'',address:'',
+    serviceTypes:l.serviceInterested||[],quotePrice:l.quoteAmount||0,
+    finalPrice:0,expenses:0,jobDate:'',followUpDate:l.followUpDate||'',
+    status:'Quoted',leadSource:l.leadSource||'',paid:false,notes:l.notes||''};
+  data.customers.push(cust);
+  data.leads=data.leads.map(x=>x.id===id?{...x,convertedCustomerId:cust.id}:x);
+  saveData(); renderLeads();
+  switchTab('customers'); renderCustomers();
+  openCustomerModal(cust.id);
+}
+
+// ── Inline editing ─────────────────────────────────────────────────────────────
+let _activeSvcId = null;
+
+function editCell(e, id, field) {
+  // Ignore clicks on interactive children (buttons, links, existing inputs)
+  if (['BUTTON','A','INPUT','SELECT','TEXTAREA','LABEL'].includes(e.target.tagName)) return;
+  if (deleteConfirm === id) return;
+
+  const td = e.currentTarget;
+  const c = data.customers.find(x => x.id === id);
+  if (!c) return;
+
+  // Paid: toggle on click
+  if (field === 'paid') {
+    c.paid = !c.paid;
+    saveData(); renderCustomers(); return;
+  }
+
+  // Service types: floating checklist picker
+  if (field === 'serviceTypes') {
+    showSvcPicker(td, id); return;
+  }
+
+  // Profit is computed, not editable
+  if (field === 'profit') return;
+
+  // Close any picker that may be open
+  closeSvcPicker(false);
+
+  // Mark cell as actively editing
+  td.classList.add('editing');
+
+  const val = c[field];
+  let input;
+
+  if (field === 'status') {
+    input = document.createElement('select');
+    ['Lead','Quoted','Scheduled','Completed','Cancelled'].forEach(s => {
+      const o = document.createElement('option');
+      o.value = o.textContent = s;
+      if (s === (val || 'Lead')) o.selected = true;
+      input.appendChild(o);
+    });
+  } else if (field === 'leadSource') {
+    input = document.createElement('select');
+    [['','— None —'],'Google','Referral','Door Hanger','Facebook','Instagram','NextDoor','Yelp','Repeat Customer','Other'].forEach(item => {
+      const [v, l] = Array.isArray(item) ? item : [item, item];
+      const o = document.createElement('option');
+      o.value = v; o.textContent = l;
+      if (v === (val || '')) o.selected = true;
+      input.appendChild(o);
+    });
+  } else if (field === 'jobDate' || field === 'followUpDate') {
+    input = document.createElement('input');
+    input.type = 'date';
+    input.value = val || '';
+    input.style.minWidth = '130px';
+  } else if (['quotePrice','finalPrice','expenses'].includes(field)) {
+    input = document.createElement('input');
+    input.type = 'number'; input.min = '0'; input.step = '0.01';
+    input.value = (val && +val > 0) ? val : '';
+    input.style.minWidth = '90px';
+  } else if (field === 'notes') {
+    input = document.createElement('textarea');
+    input.value = val || '';
+    input.rows = 2;
+    input.style.minWidth = '180px';
+  } else {
+    // name, phone, address
+    input = document.createElement('input');
+    input.type = field === 'phone' ? 'tel' : 'text';
+    input.value = val || '';
+    if (field === 'name')    input.style.minWidth = '140px';
+    if (field === 'address') input.style.minWidth = '200px';
+    if (field === 'phone')   input.style.minWidth = '130px';
+  }
+
+  input.className = 'inline-input';
+
+  const commit = () => {
+    td.classList.remove('editing');
+    saveInlineCell(id, field, input.value);
+  };
+  const cancel = () => { renderCustomers(); };
+
+  if (input.tagName === 'SELECT') {
+    input.onchange = commit;
+    input.onblur   = commit;
+  } else if (input.tagName === 'TEXTAREA') {
+    input.onblur = commit;
+    input.onkeydown = ev => { if (ev.key === 'Escape') cancel(); };
+  } else {
+    input.onblur = commit;
+    input.onkeydown = ev => {
+      if (ev.key === 'Enter') { ev.preventDefault(); commit(); }
+      if (ev.key === 'Escape') cancel();
+    };
+  }
+
+  td.innerHTML = '';
+  td.appendChild(input);
+  input.focus();
+  if (input.select && input.type !== 'date') input.select();
+}
+
+function saveInlineCell(id, field, rawVal) {
+  const c = data.customers.find(x => x.id === id);
+  if (!c) return;
+  if (['quotePrice','finalPrice','expenses'].includes(field)) {
+    c[field] = parsePrice(rawVal);
+  } else {
+    c[field] = typeof rawVal === 'string' ? rawVal.trim() : rawVal;
+  }
+  saveData();
+  renderCustomers();
+}
+
+// ── Service type picker ────────────────────────────────────────────────────────
+function showSvcPicker(td, id) {
+  closeSvcPicker(false);
+  _activeSvcId = id;
+  const c = data.customers.find(x => x.id === id);
+  if (!c) return;
+
+  const picker = document.createElement('div');
+  picker.id = 'svc-picker';
+  picker.className = 'svc-picker';
+
+  SERVICE_OPTS.forEach(svc => {
+    const lbl = document.createElement('label');
+    lbl.className = 'checkbox-item';
+    const cb = document.createElement('input');
+    cb.type = 'checkbox'; cb.value = svc;
+    cb.checked = (c.serviceTypes || []).includes(svc);
+    cb.onclick = ev => ev.stopPropagation();
+    cb.onchange = () => {
+      c.serviceTypes = Array.from(picker.querySelectorAll('input:checked')).map(x => x.value);
+      saveData();
+    };
+    lbl.appendChild(cb);
+    lbl.appendChild(document.createTextNode(' ' + svc));
+    picker.appendChild(lbl);
+  });
+
+  const doneBtn = document.createElement('button');
+  doneBtn.textContent = 'Done';
+  doneBtn.className = 'btn btn-primary btn-xs';
+  doneBtn.style.cssText = 'margin:8px 10px 2px;display:block;width:calc(100% - 20px);';
+  doneBtn.onclick = ev => { ev.stopPropagation(); closeSvcPicker(true); };
+  picker.appendChild(doneBtn);
+
+  document.body.appendChild(picker);
+
+  // Position relative to the cell after it's rendered
+  setTimeout(() => {
+    const rect = td.getBoundingClientRect();
+    const ph = picker.offsetHeight, pw = picker.offsetWidth;
+    let top  = rect.bottom + 4;
+    let left = rect.left;
+    if (top + ph > window.innerHeight - 8) top = rect.top - ph - 4;
+    if (left + pw > window.innerWidth - 8) left = window.innerWidth - pw - 8;
+    picker.style.top  = Math.max(4, top)  + 'px';
+    picker.style.left = Math.max(4, left) + 'px';
+  }, 0);
+
+  // Outside click closes picker after a brief delay (so the opening click doesn't immediately close it)
+  setTimeout(() => document.addEventListener('click', _svcOutsideClick), 120);
+}
+
+function _svcOutsideClick(e) {
+  const p = document.getElementById('svc-picker');
+  if (p && !p.contains(e.target)) closeSvcPicker(true);
+}
+
+function closeSvcPicker(rerender) {
+  document.removeEventListener('click', _svcOutsideClick);
+  const p = document.getElementById('svc-picker');
+  if (p) p.remove();
+  _activeSvcId = null;
+  if (rerender) renderCustomers();
+}
+
+// ── Google Sheets Sync ─────────────────────────────────────────────────────────
+async function syncFromSheet() {
+  const statusEl = el('sync-status');
+  statusEl.style.color = 'var(--muted)';
+  statusEl.textContent = 'Syncing…';
+  try {
+    const resp = await fetch('/api/sync', { method: 'POST' });
+    const result = await resp.json();
+    if (result.error) throw new Error(result.error);
+    if (result.added > 0) { await loadData(); renderLeads(); }
+    statusEl.style.color = result.added > 0 ? 'var(--green)' : 'var(--muted)';
+    statusEl.textContent = result.added > 0
+      ? `✓ ${result.added} new lead${result.added===1?'':'s'} added`
+      : result.note ? `ℹ ${result.note}` : '✓ Up to date';
+  } catch(err) {
+    statusEl.style.color = 'var(--red)';
+    statusEl.textContent = '✗ ' + err.message;
+  }
+}
+
+// ── Invoices ───────────────────────────────────────────────────────────────────
+function generateInvoiceNumber() {
+  const nums = (data.invoices||[]).map(inv => {
+    const m = (inv.invoiceNumber||'').match(/(\d+)$/);
+    return m ? parseInt(m[1]) : 0;
+  });
+  return 'INV-' + String(nums.length > 0 ? Math.max(...nums) + 1 : 1).padStart(4, '0');
+}
+
+let _liCounter = 0;
+
+function addInvoiceLineItem(desc, amount) {
+  _liCounter++;
+  const id = _liCounter;
+  const row = document.createElement('div');
+  row.className = 'li-row';
+  row.dataset.liId = id;
+  row.innerHTML = `<input type="text" class="li-desc" value="${escHtml(String(desc||''))}" placeholder="Service description" oninput="updateInvoiceTotals()"><input type="number" class="li-amount" value="${amount!=null&&amount!==''?amount:''}" min="0" step="0.01" placeholder="0.00" oninput="updateInvoiceTotals()"><button class="btn btn-ghost icon-btn danger" onclick="this.closest('.li-row').remove();updateInvoiceTotals()" title="Remove">×</button>`;
+  el('line-items-container').appendChild(row);
+  updateInvoiceTotals();
+}
+
+function updateInvoiceTotals() {
+  let subtotal = 0;
+  document.querySelectorAll('#line-items-container .li-amount').forEach(inp => {
+    subtotal += parseFloat(inp.value) || 0;
+  });
+  const discount = parseFloat((el('inv-discount')||{}).value) || 0;
+  const total = Math.max(0, subtotal - discount);
+  if (el('inv-subtotal-display')) el('inv-subtotal-display').textContent = fmt(subtotal);
+  if (el('inv-discount-display')) {
+    el('inv-discount-display').textContent = discount > 0 ? '-' + fmt(discount) : '—';
+    el('inv-discount-row').style.display = discount > 0 ? '' : 'none';
+  }
+  if (el('inv-total-display')) el('inv-total-display').textContent = fmt(total);
+}
+
+function getInvLineItems() {
+  const rows = document.querySelectorAll('#line-items-container .li-row');
+  const items = [];
+  rows.forEach((row, i) => {
+    const desc = (row.querySelector('.li-desc').value || '').trim();
+    const amount = parseFloat(row.querySelector('.li-amount').value) || 0;
+    if (desc || amount > 0) items.push({ id: i+1, description: desc, amount: Math.round(amount*100)/100 });
+  });
+  return items;
+}
+
+function openInvoiceModal(id) {
+  editingInvoiceId = id;
+  const inv = id ? (data.invoices||[]).find(x => x.id === id) : null;
+  el('inv-modal-title').textContent = inv ? 'Edit Invoice' : 'New Invoice';
+  const invNum = inv ? inv.invoiceNumber : generateInvoiceNumber();
+  el('_inv-number').value = invNum;
+  el('inv-number-display').textContent = invNum;
+  el('inv-date').value         = inv ? (inv.createdDate||todayStr()) : todayStr();
+  el('inv-cust-name').value    = inv ? (inv.customerName||'') : '';
+  el('inv-cust-phone').value   = inv ? (inv.customerPhone||'') : '';
+  el('inv-cust-address').value = inv ? (inv.customerAddress||'') : '';
+  el('inv-jobdate').value      = inv ? (inv.jobDate||'') : '';
+  el('inv-discount').value     = inv && inv.discount ? inv.discount : '';
+  el('inv-payment').value      = inv ? (inv.paymentMethod||'') : '';
+  el('inv-paid').checked       = inv ? !!inv.paid : false;
+  el('inv-paiddate').value     = inv ? (inv.paidDate||'') : '';
+  el('inv-notes').value        = inv ? (inv.notes||'') : '';
+  setChecked('inv-services', inv ? (inv.serviceTypes||[]) : []);
+  const sel = el('inv-customer-select');
+  sel.innerHTML = '<option value="">— Manual entry —</option>';
+  (data.customers||[]).forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = c.id;
+    opt.textContent = c.name + (c.address ? ' — ' + c.address.substring(0,28) : '');
+    if (inv && inv.customerId === c.id) opt.selected = true;
+    sel.appendChild(opt);
+  });
+  el('line-items-container').innerHTML = '';
+  _liCounter = 0;
+  const items = inv ? (inv.lineItems||[]) : [];
+  if (items.length > 0) {
+    items.forEach(li => addInvoiceLineItem(li.description, li.amount));
+  } else {
+    addInvoiceLineItem();
+  }
+  el('inv-error').style.display = 'none';
+  el('invoice-modal').classList.add('open');
+  setTimeout(() => el('inv-cust-name').focus(), 80);
+}
+
+function fillInvoiceCustomer() {
+  const cid = el('inv-customer-select').value;
+  if (!cid) return;
+  const c = (data.customers||[]).find(x => x.id === cid);
+  if (!c) return;
+  el('inv-cust-name').value    = c.name || '';
+  el('inv-cust-phone').value   = c.phone || '';
+  el('inv-cust-address').value = c.address || '';
+  el('inv-jobdate').value      = c.jobDate || '';
+  setChecked('inv-services', c.serviceTypes || []);
+  if ((+c.finalPrice||0) > 0) {
+    el('line-items-container').innerHTML = '';
+    _liCounter = 0;
+    const svcLabel = (c.serviceTypes||[]).join(' + ') || 'Pressure Washing Services';
+    addInvoiceLineItem(svcLabel, c.finalPrice);
+  }
+}
+
+function submitInvoice() {
+  const name = (el('inv-cust-name').value||'').trim();
+  if (!name) { showErr('inv-error','Customer name is required.'); return; }
+  const lineItems = getInvLineItems();
+  if (lineItems.length === 0) { showErr('inv-error','Add at least one line item.'); return; }
+  const inv = {
+    id: editingInvoiceId || uid(),
+    invoiceNumber: el('_inv-number').value,
+    customerId: el('inv-customer-select').value || null,
+    customerName: name,
+    customerPhone: (el('inv-cust-phone').value||'').trim(),
+    customerAddress: (el('inv-cust-address').value||'').trim(),
+    serviceTypes: getChecked('inv-services'),
+    jobDate: el('inv-jobdate').value,
+    lineItems,
+    discount: parseFloat(el('inv-discount').value)||0,
+    paymentMethod: el('inv-payment').value,
+    paid: el('inv-paid').checked,
+    paidDate: el('inv-paiddate').value,
+    notes: (el('inv-notes').value||'').trim(),
+    createdDate: el('inv-date').value
+  };
+  if (editingInvoiceId) {
+    data.invoices = data.invoices.map(x => x.id === editingInvoiceId ? inv : x);
+  } else {
+    if (!data.invoices) data.invoices = [];
+    data.invoices.push(inv);
+  }
+  saveData(); closeModal('invoice-modal'); renderInvoices();
+}
+
+function renderInvoices() {
+  const invs = [...(data.invoices||[])].sort((a,b) => b.invoiceNumber.localeCompare(a.invoiceNumber));
+  const unpaid = invs.filter(i => !i.paid).length;
+  const badge = el('inv-badge');
+  badge.textContent = unpaid > 0 ? unpaid : invs.length;
+  badge.style.display = invs.length > 0 ? '' : 'none';
+  el('inv-sub').textContent = `${invs.length} invoice${invs.length===1?'':'s'} · ${unpaid} unpaid`;
+  if (invs.length === 0) {
+    el('inv-empty').style.display = '';
+    el('inv-table-wrap').style.display = 'none';
+    return;
+  }
+  el('inv-empty').style.display = 'none';
+  el('inv-table-wrap').style.display = '';
+  el('inv-tbody').innerHTML = invs.map(inv => {
+    const subtotal = (inv.lineItems||[]).reduce((s,li)=>s+(+li.amount||0),0);
+    const total = Math.max(0, subtotal - (+inv.discount||0));
+    const statusBadge = inv.paid
+      ? '<span class="badge badge-completed">✓ Paid</span>'
+      : '<span class="badge badge-cancelled">Unpaid</span>';
+    if (deleteConfirm === inv.id) return `<tr>
+      <td><strong>${escHtml(inv.invoiceNumber)}</strong></td><td>${escHtml(inv.customerName)}</td>
+      <td class="td-muted">${fmtDate(inv.createdDate)}</td><td class="td-muted">${fmtDate(inv.jobDate)||'—'}</td>
+      <td class="r"><strong>${fmt(total)}</strong></td><td>${statusBadge}</td>
+      <td class="td-muted">${escHtml(inv.paymentMethod||'')||'—'}</td>
+      <td><div class="del-confirm"><span class="del-label">Delete?</span><button class="btn btn-destructive btn-xs" onclick="confirmDelete('${inv.id}','invoice')">✓</button><button class="btn btn-outline btn-xs" onclick="cancelDelete()">✕</button></div></td>
+    </tr>`;
+    return `<tr>
+      <td><strong class="td-muted">${escHtml(inv.invoiceNumber)}</strong></td>
+      <td><strong>${escHtml(inv.customerName)}</strong></td>
+      <td class="td-muted">${fmtDate(inv.createdDate)}</td>
+      <td class="td-muted">${fmtDate(inv.jobDate)||'—'}</td>
+      <td class="r td-green"><strong>${fmt(total)}</strong></td>
+      <td>${statusBadge}</td>
+      <td class="td-muted">${escHtml(inv.paymentMethod||'')||'—'}</td>
+      <td style="white-space:nowrap">
+        <button class="btn btn-ghost icon-btn" onclick="printInvoice('${inv.id}')" title="Print / Save PDF">🖨</button>
+        <button class="btn btn-ghost icon-btn" onclick="openInvoiceModal('${inv.id}')" title="Edit">✎</button>
+        <button class="btn btn-ghost icon-btn danger" onclick="askDelete('${inv.id}')" title="Delete">🗑</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function printInvoice(id) {
+  const inv = (data.invoices||[]).find(x => x.id === id);
+  if (!inv) return;
+  const w = window.open('', '_blank', 'width=860,height=1100');
+  if (!w) { alert('Allow pop-ups in your browser to print invoices.'); return; }
+  w.document.write(buildInvoiceHTML(inv));
+  w.document.close();
+  w.focus();
+  setTimeout(() => w.print(), 450);
+}
+
+function buildInvoiceHTML(inv) {
+  const cur = n => (+(n)||0).toLocaleString('en-US',{style:'currency',currency:'USD'});
+  const fd  = iso => { if(!iso) return ''; const [y,m,d]=iso.split('-'); return m+'/'+d+'/'+y; };
+  const es  = s => (s||'').toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  const lineItems = inv.lineItems || [];
+  const subtotal = lineItems.reduce((s,li)=>s+(+li.amount||0),0);
+  const discount = +inv.discount||0;
+  const total = Math.max(0, subtotal - discount);
+  const lineRows = lineItems.map(li=>`<tr><td>${es(li.description)}</td><td class="r">${cur(li.amount)}</td></tr>`).join('');
+  const svcTags = (inv.serviceTypes||[]).map(s=>`<span class="stag">${es(s)}</span>`).join('');
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${es(inv.invoiceNumber)} — Rose Power Washing</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:13px;color:#0f172a;background:#fff;padding:48px;max-width:720px;margin:0 auto}
+.hdr{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:22px;border-bottom:3px solid #1e3a5f;margin-bottom:28px}
+.bname{font-size:22px;font-weight:800;color:#1e3a5f;margin-bottom:5px}
+.binfo{font-size:12px;color:#64748b;line-height:1.7}
+.ititle{font-size:30px;font-weight:900;color:#1e3a5f;text-align:right}
+.imeta{text-align:right;font-size:12px;color:#64748b;line-height:1.8;margin-top:4px}
+.inum{font-size:14px;font-weight:700;color:#1e3a5f}
+.blbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#94a3b8;margin-bottom:7px}
+.binfo2{font-size:13px;line-height:1.7}
+.bill{margin-bottom:22px}
+.svcs{margin-bottom:20px}
+.stags{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+.stag{background:#f1f5f9;border:1px solid #e2e8f0;border-radius:4px;padding:2px 9px;font-size:12px}
+table{width:100%;border-collapse:collapse}
+th{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#64748b;background:#f8fafc;padding:9px 12px;border-bottom:1px solid #e2e8f0;text-align:left}
+th.r,td.r{text-align:right}
+td{padding:10px 12px;border-bottom:1px solid #f1f5f9}
+.tw{border-top:2px solid #e2e8f0;padding-top:2px;margin-top:0}
+.tr{display:flex;justify-content:flex-end;gap:60px;padding:5px 12px;font-size:13px;color:#475569}
+.tg{display:flex;justify-content:flex-end;gap:60px;padding:10px 12px;background:#1e3a5f;color:#fff;border-radius:6px;font-size:15px;font-weight:800;margin-top:6px}
+.foot{display:flex;justify-content:space-between;align-items:flex-end;margin-top:26px;padding-top:18px;border-top:1px solid #e2e8f0}
+.pinfo{font-size:12px;color:#475569;line-height:1.8}
+.pinfo b{color:#0f172a}
+.paid{background:#15803d;color:#fff;padding:6px 16px;border-radius:6px;font-size:13px;font-weight:800;letter-spacing:.06em}
+.unpaid{background:#b91c1c;color:#fff;padding:6px 16px;border-radius:6px;font-size:13px;font-weight:800}
+.ty{text-align:center;margin-top:30px;color:#94a3b8;font-size:12px;padding-top:16px;border-top:1px solid #f1f5f9}
+@media print{body{padding:20px}@page{margin:.5in;size:letter}}
+</style></head><body>
+<div class="hdr">
+  <div><div class="bname">Rose Power Washing</div><div class="binfo">(346) 818-7596<br>rosepowerwashingtx.com<br>Cypress, TX</div></div>
+  <div><div class="ititle">INVOICE</div><div class="imeta"><div class="inum">${es(inv.invoiceNumber)}</div>Date: ${fd(inv.createdDate)}${inv.jobDate?'<br>Job Date: '+fd(inv.jobDate):''}</div></div>
+</div>
+<div class="bill"><div class="blbl">Bill To</div><div class="binfo2"><strong>${es(inv.customerName)}</strong>${inv.customerAddress?'<br>'+es(inv.customerAddress):''}${inv.customerPhone?'<br>'+es(inv.customerPhone):''}</div></div>
+${svcTags?`<div class="svcs"><div class="blbl">Services</div><div class="stags">${svcTags}</div></div>`:''}
+<table><thead><tr><th>Description</th><th class="r">Amount</th></tr></thead><tbody>${lineRows}</tbody></table>
+<div class="tw">
+  <div class="tr"><span>Subtotal</span><span>${cur(subtotal)}</span></div>
+  ${discount>0?`<div class="tr"><span>Discount</span><span>-${cur(discount)}</span></div>`:''}
+  <div class="tg"><span>TOTAL DUE</span><span>${cur(total)}</span></div>
+</div>
+<div class="foot">
+  <div class="pinfo">${inv.paymentMethod?'Payment: <b>'+es(inv.paymentMethod)+'</b><br>':''}${inv.paid&&inv.paidDate?'Paid: <b>'+fd(inv.paidDate)+'</b><br>':''}${inv.notes?'Notes: '+es(inv.notes):''}</div>
+  <div>${inv.paid?'<span class="paid">✓ PAID</span>':'<span class="unpaid">UNPAID</span>'}</div>
+</div>
+<div class="ty">Thank you for choosing Rose Power Washing! We appreciate your business.</div>
+</body></html>`;
+}
+
+// ── Auth / Boot ────────────────────────────────────────────────────────────────
+async function login() {
+  const pw = (el('login-pw').value || '').trim();
+  if (!pw) return;
+  const btn = el('login-btn');
+  const errEl = el('login-err');
+  btn.textContent = 'Signing in…';
+  btn.disabled = true;
+  errEl.textContent = '';
+  try {
+    const resp = await fetch('/api/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: pw }),
+    });
+    if (resp.ok) {
+      el('login-screen').style.display = 'none';
+      await initApp();
+    } else {
+      errEl.textContent = 'Incorrect password.';
+      btn.textContent = 'Sign In';
+      btn.disabled = false;
+      el('login-pw').select();
+    }
+  } catch(e) {
+    errEl.textContent = 'Connection error — try again.';
+    btn.textContent = 'Sign In';
+    btn.disabled = false;
+  }
+}
+
+async function signOut() {
+  await fetch('/api/logout', { method: 'POST' });
+  location.reload();
+}
+
+async function initApp() {
+  try {
+    await loadData();
+    render();
+  } catch(e) {
+    console.error('initApp failed:', e);
+  }
+}
+
+(async () => {
+  try {
+    const { authed } = await fetch('/api/me').then(r => r.json());
+    if (authed) {
+      el('login-screen').style.display = 'none';
+      await initApp();
+    }
+  } catch(e) {
+    console.error('Boot error:', e);
+  }
+})();
+</script>
+</body>
+</html>
