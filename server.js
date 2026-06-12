@@ -168,18 +168,27 @@ if (SHEETS_SCRIPT_URL) {
   console.log('[sheets-sync] Auto-sync every 5 minutes');
 }
 
-// ── DB bootstrap ─────────────────────────────────────────────────────────────
-async function initDB() {
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS store (
-      id         INTEGER PRIMARY KEY DEFAULT 1,
-      data       JSONB   NOT NULL DEFAULT '{}'::jsonb,
-      updated_at TIMESTAMPTZ DEFAULT NOW()
-    );
-    INSERT INTO store (id, data) VALUES (1, '{}'::jsonb)
-    ON CONFLICT DO NOTHING;
-  `);
-  console.log('[db] Store table ready');
+// ── DB bootstrap (with retry) ─────────────────────────────────────────────────
+async function initDB(retries = 5, delayMs = 3000) {
+  for (let i = 1; i <= retries; i++) {
+    try {
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS store (
+          id         INTEGER PRIMARY KEY DEFAULT 1,
+          data       JSONB   NOT NULL DEFAULT '{}'::jsonb,
+          updated_at TIMESTAMPTZ DEFAULT NOW()
+        );
+        INSERT INTO store (id, data) VALUES (1, '{}'::jsonb)
+        ON CONFLICT DO NOTHING;
+      `);
+      console.log('[db] Store table ready');
+      return;
+    } catch (err) {
+      console.error(`[db] Attempt ${i}/${retries} failed: ${err.message}`);
+      if (i === retries) throw err;
+      await new Promise(r => setTimeout(r, delayMs));
+    }
+  }
 }
 
 // ── SPA fallback ─────────────────────────────────────────────────────────────
@@ -189,9 +198,17 @@ app.get('*', (req, res) => {
 
 // ── Start ─────────────────────────────────────────────────────────────────────
 const PORT = process.env.PORT || 3000;
+if (!process.env.DATABASE_URL) {
+  console.error('[fatal] DATABASE_URL environment variable is not set.');
+  console.error('        Add a PostgreSQL database in your Railway project.');
+  process.exit(1);
+}
 initDB()
   .then(() => {
     app.listen(PORT, () => console.log(`Server on port ${PORT}`));
     if (SHEETS_SCRIPT_URL) syncSheetLeads();
   })
-  .catch(err => { console.error('DB init failed:', err.message); process.exit(1); });
+  .catch(err => {
+    console.error('[fatal] DB init failed after retries:', err.message);
+    process.exit(1);
+  });
