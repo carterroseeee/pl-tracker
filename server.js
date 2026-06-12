@@ -196,19 +196,23 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// ── Start ─────────────────────────────────────────────────────────────────────
+// ── Start — listen first so Railway health check always gets a response ────────
 const PORT = process.env.PORT || 3000;
-if (!process.env.DATABASE_URL) {
-  console.error('[fatal] DATABASE_URL environment variable is not set.');
-  console.error('        Add a PostgreSQL database in your Railway project.');
-  process.exit(1);
-}
-initDB()
-  .then(() => {
-    app.listen(PORT, () => console.log(`Server on port ${PORT}`));
-    if (SHEETS_SCRIPT_URL) syncSheetLeads();
-  })
-  .catch(err => {
-    console.error('[fatal] DB init failed after retries:', err.message);
-    process.exit(1);
-  });
+
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Server listening on 0.0.0.0:${PORT}`);
+
+  if (!process.env.DATABASE_URL) {
+    console.error('[db] WARNING: DATABASE_URL is not set — data endpoints will fail.');
+    console.error('[db] Add a PostgreSQL database in your Railway project and redeploy.');
+    return;
+  }
+
+  initDB()
+    .then(() => {
+      if (SHEETS_SCRIPT_URL) syncSheetLeads();
+    })
+    .catch(err => {
+      console.error('[db] Init failed after retries:', err.message);
+    });
+});
