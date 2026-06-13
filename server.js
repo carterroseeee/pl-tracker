@@ -15,18 +15,31 @@ const PORT              = process.env.PORT || 3000;
 // ── DB setup ──────────────────────────────────────────────────────────────────
 const DB_URL = (process.env.DATABASE_URL || '').trim();
 
-// Show the hostname we're connecting to (password hidden)
-let dbHost = '(not set)';
+// ── Startup diagnostics ───────────────────────────────────────────────────────
+console.log('=== STARTUP ===');
+console.log('NODE_ENV    :', process.env.NODE_ENV || '(not set)');
+console.log('PORT        :', process.env.PORT     || '(not set, will use 3000)');
+console.log('DATABASE_URL:', DB_URL
+  ? DB_URL.replace(/:([^:@]+)@/, ':***@')   // mask password only
+  : '(not set)');
+
+let dbHost  = '(not set)';
 let dbReady = false;
+
 try {
+  if (!DB_URL) throw new Error('empty');
   const u = new URL(DB_URL);
-  dbHost = u.hostname + ':' + u.port;
-  console.log(`[db] Connecting to host: ${dbHost}`);
-  console.log(`[db] Full URL prefix: ${DB_URL.slice(0, 35)}...`);
-} catch (_) {
-  console.error('[db] DATABASE_URL is not a valid URL. Value starts with:', DB_URL.slice(0, 40) || '(empty)');
-  console.error('[db] Set DATABASE_URL in Railway → your web service → Variables');
+  dbHost = `${u.hostname}:${u.port}`;
+  console.log('DB host     :', dbHost);
+  if (u.hostname.endsWith('.railway.internal')) {
+    console.log('DB WARNING  : Private URL detected. Requires Railway Private Networking to be enabled.');
+    console.log('DB WARNING  : If the app cannot connect, switch to the PUBLIC database URL instead.');
+  }
+} catch (e) {
+  console.error('DB ERROR    : DATABASE_URL is missing or not a valid URL');
+  console.error('DB ERROR    : Raw value =', DB_URL || '(empty)');
 }
+console.log('===============');
 
 let pool = null;
 if (DB_URL && !DB_URL.includes('{{')) {
