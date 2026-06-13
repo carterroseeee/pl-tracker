@@ -12,46 +12,71 @@ const SECRET            = process.env.SESSION_SECRET   || 'rose-tracker-secret-c
 const SHEETS_SCRIPT_URL = process.env.SHEETS_SCRIPT_URL || '';
 const PORT              = process.env.PORT || 3000;
 
-// ── DB setup ──────────────────────────────────────────────────────────────────
-const DB_URL = (process.env.DATABASE_URL || '').trim();
+// ── DB connection config ──────────────────────────────────────────────────────
+// Prefer individual PG* vars (always work on Railway without private networking).
+// Fall back to DATABASE_URL if PG* vars aren't present.
+const DB_URL  = (process.env.DATABASE_URL || '').trim();
+const PGHOST  = (process.env.PGHOST       || '').trim();
+const PGPORT  = (process.env.PGPORT       || '5432').trim();
+const PGDB    = (process.env.PGDATABASE   || 'railway').trim();
+const PGUSER  = (process.env.PGUSER       || 'postgres').trim();
+const PGPASS  = (process.env.PGPASSWORD   || '').trim();
 
 // ── Startup diagnostics ───────────────────────────────────────────────────────
 console.log('=== STARTUP ===');
 console.log('NODE_ENV    :', process.env.NODE_ENV || '(not set)');
-console.log('PORT        :', process.env.PORT     || '(not set, will use 3000)');
-console.log('DATABASE_URL:', DB_URL
-  ? DB_URL.replace(/:([^:@]+)@/, ':***@')   // mask password only
-  : '(not set)');
+console.log('PORT        :', process.env.PORT     || '3000');
+console.log('DATABASE_URL:', DB_URL ? DB_URL.replace(/:([^:@]+)@/, ':***@') : '(not set)');
+console.log('PGHOST      :', PGHOST  || '(not set)');
+console.log('PGPORT      :', PGPORT);
+console.log('PGDATABASE  :', PGDB    || '(not set)');
+console.log('PGUSER      :', PGUSER  || '(not set)');
+console.log('PGPASSWORD  :', PGPASS  ? '(set)' : '(not set)');
+console.log('===============');
 
 let dbHost  = '(not set)';
 let dbReady = false;
+let poolConfig;
 
-try {
-  if (!DB_URL) throw new Error('empty');
-  const u = new URL(DB_URL);
-  dbHost = `${u.hostname}:${u.port}`;
-  console.log('DB host     :', dbHost);
-  if (u.hostname.endsWith('.railway.internal')) {
-    console.log('DB WARNING  : Private URL detected. Requires Railway Private Networking to be enabled.');
-    console.log('DB WARNING  : If the app cannot connect, switch to the PUBLIC database URL instead.');
-  }
-} catch (e) {
-  console.error('DB ERROR    : DATABASE_URL is missing or not a valid URL');
-  console.error('DB ERROR    : Raw value =', DB_URL || '(empty)');
+if (PGHOST) {
+  // ── Method 1: individual PG* vars (recommended on Railway) ──────────────────
+  poolConfig = {
+    host:     PGHOST,
+    port:     parseInt(PGPORT, 10),
+    database: PGDB,
+    user:     PGUSER,
+    password: PGPASS,
+    ssl:      { rejectUnauthorized: false },
+    connectionTimeoutMillis: 10000,
+    idleTimeoutMillis:       30000,
+  };
+  dbHost = `${PGHOST}:${PGPORT}`;
+  console.log('[db] Using individual PGHOST/PGPORT/PGDATABASE/PGUSER/PGPASSWORD');
+  console.log('[db] Host:', dbHost);
+} else if (DB_URL && !DB_URL.includes('{{')) {
+  // ── Method 2: DATABASE_URL connection string ─────────────────────────────────
+  poolConfig = {
+    connectionString: DB_URL,
+    ssl:      { rejectUnauthorized: false },
+    connectionTimeoutMillis: 10000,
+    idleTimeoutMillis:       30000,
+  };
+  try { const u = new URL(DB_URL); dbHost = `${u.hostname}:${u.port}`; } catch (_) {}
+  console.log('[db] Using DATABASE_URL, host:', dbHost);
+} else {
+  console.error('[db] ERROR: No database credentials found.');
+  console.error('[db] In Railway → web service → Variables, add:');
+  console.error('[db]   PGHOST=${{Postgres.PGHOST}}');
+  console.error('[db]   PGPORT=${{Postgres.PGPORT}}');
+  console.error('[db]   PGDATABASE=${{Postgres.PGDATABASE}}');
+  console.error('[db]   PGUSER=${{Postgres.PGUSER}}');
+  console.error('[db]   PGPASSWORD=${{Postgres.PGPASSWORD}}');
 }
-console.log('===============');
 
 let pool = null;
-if (DB_URL && !DB_URL.includes('{{')) {
-  pool = new Pool({
-    connectionString: DB_URL,
-    ssl: { rejectUnauthorized: false },
-    connectionTimeoutMillis: 10000,
-    idleTimeoutMillis: 30000,
-  });
+if (poolConfig) {
+  pool = new Pool(poolConfig);
   pool.on('error', err => console.error('[db] Pool error:', err.message));
-} else {
-  console.error('[db] Skipping pool — DATABASE_URL is empty or unresolved template.');
 }
 
 // ── Middleware ────────────────────────────────────────────────────────────────
