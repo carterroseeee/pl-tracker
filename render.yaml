@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: pl-tracker
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: APP_PASSWORD
+        value: Rose2024!
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: pl-tracker-db
+          property: connectionString
+
+databases:
+  - name: pl-tracker-db
+    plan: free
+    databaseName: pltracker
+    user: pltracker
