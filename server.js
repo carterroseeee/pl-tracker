@@ -5,10 +5,20 @@ const cookieParser = require('cookie-parser');
 const cron         = require('node-cron');
 const path         = require('path');
 
-const app  = express();
+const app = express();
+
+// Log the DB host we're connecting to (password hidden) so Railway logs show it clearly
+const DB_URL = process.env.DATABASE_URL || '';
+try {
+  const u = new URL(DB_URL);
+  console.log(`[db] Will connect to: ${u.protocol}//${u.username}:***@${u.hostname}:${u.port}${u.pathname}`);
+} catch(_) {
+  console.log('[db] DATABASE_URL is missing or not a valid URL:', DB_URL ? DB_URL.slice(0, 30) : '(empty)');
+}
+
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false,
+  connectionString: DB_URL,
+  ssl: { rejectUnauthorized: false },
 });
 
 const PASSWORD          = process.env.APP_PASSWORD     || 'Rose2024!';
