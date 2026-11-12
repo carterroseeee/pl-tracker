@@ -1549,17 +1549,22 @@ function openExpenseModal(id) {
   setTimeout(()=>el('e-desc').focus(),80);
 }
 function submitExpense() {
-  const date=el('e-date').value,amount=el('e-amount').value,
-        categories=getChecked('e-categories'),desc=el('e-desc').value.trim();
-  if(!date){showErr('e-error','Please select a date.');return;}
-  if(!amount){showErr('e-error','Please enter an amount.');return;}
-  if(!desc){showErr('e-error','Please enter a description.');return;}
-  const amt=parseFloat(amount);
-  if(isNaN(amt)||amt<=0){showErr('e-error','Amount must be greater than zero.');return;}
-  const entry={id:editingExpenseId||uid(),date,categories,description:desc,amount:Math.round(amt*100)/100};
-  if(editingExpenseId) data.expenses=data.expenses.map(e=>e.id===editingExpenseId?entry:e);
-  else data.expenses.push(entry);
-  saveData(); closeModal('expense-modal'); render();
+  try {
+    const date=el('e-date').value,amount=el('e-amount').value,
+          categories=getChecked('e-categories'),desc=el('e-desc').value.trim();
+    if(!date){showErr('e-error','Please select a date.');return;}
+    if(!amount){showErr('e-error','Please enter an amount.');return;}
+    if(!desc){showErr('e-error','Please enter a description.');return;}
+    const amt=parseFloat(amount);
+    if(isNaN(amt)||amt<=0){showErr('e-error','Amount must be greater than zero.');return;}
+    if(!data.expenses) data.expenses=[];
+    const entry={id:editingExpenseId||uid(),date,categories,description:desc,amount:Math.round(amt*100)/100};
+    if(editingExpenseId) data.expenses=data.expenses.map(e=>e.id===editingExpenseId?entry:e);
+    else data.expenses.push(entry);
+    saveData(); closeModal('expense-modal'); render();
+  } catch(err) {
+    alert('Error saving expense: '+err.message);
+  }
 }
 
 // ── Customer modal ─────────────────────────────────────────────────────────────
