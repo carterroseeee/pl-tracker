@@ -55,7 +55,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; b
 .card-amount.neg   { color: var(--red); }
 
 /* ── Dashboard source table ── */
-.dash-table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; margin-bottom: 24px; }
+.dash-table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; margin-bottom: 24px; }
 .dash-tbl { width: 100%; border-collapse: collapse; }
 .dash-tbl th { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; background: var(--bg); padding: 9px 16px; text-align: right; border-bottom: 1px solid var(--border); white-space: nowrap; }
 .dash-tbl th:first-child { text-align: left; }
