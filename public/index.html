@@ -1494,7 +1494,7 @@ function renderCustomers() {
 }
 
 // ── Delete ─────────────────────────────────────────────────────────────────────
-function askDelete(id)       { deleteConfirm=id; renderCustomers(); renderIncome(); renderExpenses(); renderInvoices(); }
+function askDelete(id)       { deleteConfirm=id; renderLeads(); renderCustomers(); renderIncome(); renderExpenses(); renderInvoices(); }
 function cancelDelete()      { deleteConfirm=null; render(); }
 function confirmDelete(id, type) {
   if(type==='income')    data.income    = data.income.filter(e=>e.id!==id);
