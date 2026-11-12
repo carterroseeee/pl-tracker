@@ -244,7 +244,9 @@ if (SHEETS_SCRIPT_URL) {
 // ── DB bootstrap ──────────────────────────────────────────────────────────────
 async function initDB() {
   if (!pool) return;
-  for (let i = 1; i <= 5; i++) {
+  let attempt = 0;
+  while (true) {
+    attempt++;
     try {
       await pool.query(`
         CREATE TABLE IF NOT EXISTS store (
@@ -255,14 +257,14 @@ async function initDB() {
         INSERT INTO store (id, data) VALUES (1, '{}'::jsonb) ON CONFLICT DO NOTHING;
       `);
       dbReady = true;
-      console.log('[db] Store table ready');
+      console.log(`[db] Store table ready (attempt ${attempt})`);
       return;
     } catch (err) {
-      console.error(`[db] Attempt ${i}/5: ${err.message}`);
-      if (i < 5) await new Promise(r => setTimeout(r, 3000));
+      const wait = Math.min(attempt * 3000, 30000); // 3s, 6s, 9s... max 30s
+      console.error(`[db] Attempt ${attempt} failed: ${err.message} — retrying in ${wait/1000}s`);
+      await new Promise(r => setTimeout(r, wait));
     }
   }
-  console.error('[db] All connection attempts failed. Check DATABASE_URL.');
 }
 
 // ── SPA fallback ──────────────────────────────────────────────────────────────
