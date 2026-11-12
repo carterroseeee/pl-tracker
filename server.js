@@ -55,11 +55,14 @@ if (PGHOST) {
   console.log('[db] Host:', dbHost);
 } else if (DB_URL && !DB_URL.includes('{{')) {
   // ── Method 2: DATABASE_URL connection string ─────────────────────────────────
+  // For Supabase: use port 6543 (pooler) instead of 5432 for external connections
+  const poolerUrl = DB_URL.replace(':5432/', ':6543/');
   poolConfig = {
-    connectionString: DB_URL,
+    connectionString: poolerUrl,
     ssl:      { rejectUnauthorized: false },
-    connectionTimeoutMillis: 10000,
-    idleTimeoutMillis:       30000,
+    connectionTimeoutMillis: 15000,
+    idleTimeoutMillis:       60000,
+    max: 3,
   };
   try { const u = new URL(DB_URL); dbHost = `${u.hostname}:${u.port}`; } catch (_) {}
   console.log('[db] Using DATABASE_URL, host:', dbHost);
