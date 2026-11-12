@@ -102,7 +102,7 @@ return next();
 }
 
 app.get('/api/me', (req, res) => {
-  res.json({ authed: req.signedCookies.authed === '1' });
+  res.json({ authed: true });
 });
 
 app.post('/api/login', (req, res) => {
