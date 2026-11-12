@@ -1551,7 +1551,9 @@ function openExpenseModal(id) {
 function submitExpense() {
   const date=el('e-date').value,amount=el('e-amount').value,
         categories=getChecked('e-categories'),desc=el('e-desc').value.trim();
-  if(!date||!amount||categories.length===0||!desc){showErr('e-error','Please fill in all required fields.');return;}
+  if(!date){showErr('e-error','Please select a date.');return;}
+  if(!amount){showErr('e-error','Please enter an amount.');return;}
+  if(!desc){showErr('e-error','Please enter a description.');return;}
   const amt=parseFloat(amount);
   if(isNaN(amt)||amt<=0){showErr('e-error','Amount must be greater than zero.');return;}
   const entry={id:editingExpenseId||uid(),date,categories,description:desc,amount:Math.round(amt*100)/100};
@@ -1812,7 +1814,7 @@ function exportCSV() {
 
 // ── Modal helpers ──────────────────────────────────────────────────────────────
 function closeModal(id) { el(id).classList.remove('open'); }
-function showErr(id,msg) { const e=el(id); e.textContent=msg; e.style.display=''; }
+function showErr(id,msg) { const e=el(id); e.textContent=msg; e.style.display=''; e.scrollIntoView({behavior:'smooth',block:'nearest'}); }
 
 document.querySelectorAll('.modal-overlay').forEach(o=>{
   o.addEventListener('click',e=>{ if(e.target===o && o.id!=='import-modal') o.classList.remove('open'); });
