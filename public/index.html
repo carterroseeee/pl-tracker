@@ -269,7 +269,7 @@ textarea.inline-input { resize: vertical; min-height: 48px; }
   .app-header .biz { font-size: 10px; }
   .btn-export { padding: 6px 10px; font-size: 12px; }
   .btn-signout { padding: 5px 9px; font-size: 11px; }
-  #save-status { display: none; }
+  #save-status { display: inline; font-size: 11px; }
 
   /* Month nav */
   .month-nav { padding: 8px 12px; gap: 10px; }
@@ -1237,8 +1237,9 @@ function normalizeData(d) {
 }
 async function loadData() {
   const resp = await fetch('/api/data');
-  if (!resp.ok) throw new Error('Failed to load data');
+  if (!resp.ok) throw new Error('HTTP '+resp.status);
   const raw = await resp.json();
+  if (Object.keys(raw).length === 0) console.warn('[loadData] Got empty data from server');
   Object.assign(data, normalizeData(raw));
 }
 let _saveTimer;
@@ -1251,10 +1252,11 @@ function saveData() {
       const r = await fetch('/api/data', {
         method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data),
       });
-      if (!r.ok) throw new Error('Save failed');
+      if (!r.ok) { const msg = await r.text(); throw new Error('Server error: '+msg); }
       if (s) { s.textContent = '✓ Saved'; setTimeout(() => { s.style.opacity = '0'; }, 1800); }
     } catch(err) {
       if (s) { s.textContent = '⚠ Not saved'; s.style.opacity = '1'; }
+      alert('⚠ Data not saved — ' + err.message + '\n\nTry refreshing the page and saving again.');
     }
   }, 600);
 }
