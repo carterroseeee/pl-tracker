@@ -1558,6 +1558,8 @@ function submitExpense() {
     const amt=parseFloat(amount);
     if(isNaN(amt)||amt<=0){showErr('e-error','Amount must be greater than zero.');return;}
     if(!data.expenses) data.expenses=[];
+    if(!data.income)   data.income=[];
+    if(!data.customers) data.customers=[];
     const entry={id:editingExpenseId||uid(),date,categories,description:desc,amount:Math.round(amt*100)/100};
     if(editingExpenseId) data.expenses=data.expenses.map(e=>e.id===editingExpenseId?entry:e);
     else data.expenses.push(entry);
@@ -2863,10 +2865,11 @@ async function signOut() {
 async function initApp() {
   try {
     await loadData();
-    render();
   } catch(e) {
-    console.error('initApp failed:', e);
+    console.error('initApp load failed, using empty data:', e);
+    normalizeData(data); // ensure arrays exist even if load failed
   }
+  render();
 }
 
 (async () => {
