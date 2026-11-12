@@ -98,12 +98,12 @@ app.get('/health', (req, res) => {
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
 function requireAuth(req, res, next) {
-return next();
+  if (req.signedCookies?.authed === '1') return next();
   res.status(401).json({ error: 'Unauthorized' });
 }
 
 app.get('/api/me', (req, res) => {
-  res.json({ authed: true });
+  res.json({ authed: req.signedCookies?.authed === '1' });
 });
 
 app.post('/api/login', (req, res) => {
