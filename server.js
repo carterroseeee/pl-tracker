@@ -10,6 +10,7 @@ const app = express();
 const PASSWORD          = process.env.APP_PASSWORD     || 'Rose2024!';
 const SECRET            = process.env.SESSION_SECRET   || 'rose-tracker-secret-change-me';
 const SHEETS_SCRIPT_URL = process.env.SHEETS_SCRIPT_URL || '';
+const CLAUDE_API_KEY    = process.env.CLAUDE_API_KEY   || '';
 const PORT              = process.env.PORT || 3000;
 
 // ── DB connection config ──────────────────────────────────────────────────────
@@ -235,6 +236,92 @@ async function syncSheetLeads() {
 
 app.post('/api/sync', requireAuth, async (req, res) => {
   res.json(await syncSheetLeads());
+});
+
+// ── Claude API key auth (for Claude to add entries without a session cookie) ──
+function requireClaudeKey(req, res, next) {
+  const key = req.headers['x-claude-key'] || '';
+  if (!CLAUDE_API_KEY || key !== CLAUDE_API_KEY) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  next();
+}
+
+// POST /api/claude/expense  { date, description, amount, categories[] }
+app.post('/api/claude/expense', requireClaudeKey, requireDB, async (req, res) => {
+  try {
+    const { date, description, amount, categories } = req.body;
+    if (!description || amount == null) return res.status(400).json({ error: 'description and amount required' });
+    const { rows } = await pool.query('SELECT data FROM store WHERE id = 1');
+    const appData = rows[0]?.data || {};
+    if (!appData.expenses) appData.expenses = [];
+    const entry = {
+      id: Date.now().toString(36) + Math.random().toString(36).slice(2),
+      date: date || new Date().toISOString().slice(0, 10),
+      description,
+      amount: parseFloat(amount),
+      categories: categories || ['Equipment'],
+    };
+    appData.expenses.push(entry);
+    await pool.query('UPDATE store SET data = $1, updated_at = NOW() WHERE id = 1', [appData]);
+    res.json({ ok: true, entry });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/claude/income  { date, customerName, amount, serviceTypes[], notes }
+app.post('/api/claude/income', requireClaudeKey, requireDB, async (req, res) => {
+  try {
+    const { date, customerName, amount, serviceTypes, notes } = req.body;
+    if (!customerName || amount == null) return res.status(400).json({ error: 'customerName and amount required' });
+    const { rows } = await pool.query('SELECT data FROM store WHERE id = 1');
+    const appData = rows[0]?.data || {};
+    if (!appData.income) appData.income = [];
+    const entry = {
+      id: Date.now().toString(36) + Math.random().toString(36).slice(2),
+      date: date || new Date().toISOString().slice(0, 10),
+      customerName,
+      amount: parseFloat(amount),
+      serviceTypes: serviceTypes || [],
+      notes: notes || '',
+    };
+    appData.income.push(entry);
+    await pool.query('UPDATE store SET data = $1, updated_at = NOW() WHERE id = 1', [appData]);
+    res.json({ ok: true, entry });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/claude/lead  { name, phone, serviceInterested[], notes, leadSource }
+app.post('/api/claude/lead', requireClaudeKey, requireDB, async (req, res) => {
+  try {
+    const { name, phone, serviceInterested, notes, leadSource } = req.body;
+    if (!name) return res.status(400).json({ error: 'name required' });
+    const { rows } = await pool.query('SELECT data FROM store WHERE id = 1');
+    const appData = rows[0]?.data || {};
+    if (!appData.leads) appData.leads = [];
+    const entry = {
+      id: Date.now().toString(36) + Math.random().toString(36).slice(2),
+      date: new Date().toISOString().slice(0, 10),
+      name,
+      phone: phone || '',
+      serviceInterested: serviceInterested || [],
+      notes: notes || '',
+      leadSource: leadSource || 'Claude',
+      quoteAmount: 0,
+      dateContacted: new Date().toISOString().slice(0, 10),
+      followUpDate: '',
+      status: 'New',
+      convertedCustomerId: null,
+    };
+    appData.leads.push(entry);
+    await pool.query('UPDATE store SET data = $1, updated_at = NOW() WHERE id = 1', [appData]);
+    res.json({ ok: true, entry });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 if (SHEETS_SCRIPT_URL) {
